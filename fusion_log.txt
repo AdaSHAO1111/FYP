@@ -1,0 +1,43 @@
+2025-03-19 15:23:18,693 - src.data_parser - INFO - Found 4 sensor data files in data
+2025-03-19 15:23:18,693 - __main__ - INFO - No specific file specified, using 1740465051536_CompassGyroSumHeadingData.txt
+2025-03-19 15:23:18,693 - __main__ - INFO - Processing data file: data/1740465051536_CompassGyroSumHeadingData.txt
+2025-03-19 15:23:18,693 - src.data_parser - INFO - Loading data from data/1740465051536_CompassGyroSumHeadingData.txt
+2025-03-19 15:23:18,721 - src.data_parser - INFO - Data loaded and filtered from first Initial_Location (index 2010)
+2025-03-19 15:23:18,729 - src.data_parser - INFO - Data classified: 16631 gyro records, 12558 compass records, 14 ground truth records, 1 initial location records
+2025-03-19 15:23:18,818 - src.data_cleaner - INFO - Cleaning gyro data: 16631 records
+2025-03-19 15:23:18,823 - src.data_cleaner - INFO - Removed 0 duplicate timestamps from gyro data
+2025-03-19 15:23:18,824 - src.data_cleaner - INFO - Identified 435 outliers in gyro data (axisZAngle)
+2025-03-19 15:23:18,824 - src.data_cleaner - INFO - Cleaning compass data: 12558 records
+2025-03-19 15:23:18,828 - src.data_cleaner - INFO - Removed 0 duplicate timestamps from compass data
+2025-03-19 15:23:18,932 - src.data_cleaner - INFO - Identified 2 outliers in compass data
+2025-03-19 15:23:18,933 - src.data_cleaner - INFO - Corrected 0 extreme outliers in compass data
+2025-03-19 15:23:18,933 - src.data_cleaner - INFO - Cleaning ground truth data: 14 records
+2025-03-19 15:23:18,933 - src.data_cleaner - INFO - Removed 7 duplicate steps from ground truth data
+2025-03-19 15:23:18,934 - src.data_cleaner - WARNING - Found 4 implausible position jumps in ground truth data
+2025-03-19 15:23:18,934 - src.data_cleaner - INFO - All data cleaned
+2025-03-19 15:23:19,032 - src.anomaly_detector - INFO - Detecting anomalies in gyro data (16631 records)
+2025-03-19 15:23:19,180 - src.anomaly_detector - INFO - Identified 832 anomalies in gyro data using Isolation Forest
+2025-03-19 15:23:19,482 - src.anomaly_detector - INFO - Saved gyro anomaly plot to output/anomalies/gyro_anomalies.png
+2025-03-19 15:23:19,483 - src.anomaly_detector - INFO - Identified 432 sudden jump anomalies in gyro data
+2025-03-19 15:23:19,483 - src.anomaly_detector - INFO - Total of 833 anomalies detected in gyro data
+2025-03-19 15:23:19,483 - src.anomaly_detector - INFO - Detecting anomalies in compass data (12558 records)
+2025-03-19 15:23:19,522 - src.anomaly_detector - INFO - Identified 628 anomalies in compass data using Local Outlier Factor
+2025-03-19 15:23:19,719 - src.anomaly_detector - INFO - Saved compass anomaly plot to output/anomalies/compass_anomalies.png
+2025-03-19 15:23:19,890 - src.anomaly_detector - INFO - Saved magnetic field anomaly plot to output/anomalies/magnetic_field_anomalies.png
+2025-03-19 15:23:19,891 - src.anomaly_detector - INFO - Identified 0 sudden heading jump anomalies in compass data
+2025-03-19 15:23:19,891 - src.anomaly_detector - INFO - Total of 628 anomalies detected in compass data
+2025-03-19 15:23:19,892 - src.anomaly_detector - INFO - Detecting anomalies in ground truth data (7 records)
+2025-03-19 15:23:19,892 - src.anomaly_detector - WARNING - Not enough valid position data for anomaly detection
+2025-03-19 15:23:19,893 - src.anomaly_detector - INFO - Identified 0 travel speed anomalies in ground truth data
+2025-03-19 15:23:19,893 - src.anomaly_detector - INFO - Detecting unclassifiable data in 29204 records
+2025-03-19 15:23:19,895 - src.anomaly_detector - INFO - No unclassifiable data detected
+2025-03-19 15:23:20,139 - __main__ - INFO - Interpolating ground truth positions
+2025-03-19 15:23:20,141 - src.data_parser - INFO - Ground truth headings calculated for 7 position changes
+2025-03-19 15:23:20,146 - src.data_parser - INFO - Generated 310 interpolated ground truth positions
+2025-03-19 15:23:20,148 - __main__ - INFO - Applying sensor fusion using EKF method
+2025-03-19 15:23:20,148 - src.sensor_fusion - INFO - Applying Extended Kalman Filter for sensor fusion
+2025-03-19 15:23:22,357 - src.sensor_fusion - INFO - Evaluating fusion results against ground truth
+2025-03-19 15:23:22,357 - src.sensor_fusion - INFO - Visualizing fusion results
+2025-03-19 15:23:22,846 - __main__ - INFO - Sensor fusion completed with 27701 data points
+2025-03-19 15:23:22,846 - __main__ - INFO - Generating visualizations
+2025-03-19 15:23:23,019 - src.data_visualizer - INFO - Saved heading comparison plot to output/plots/heading_comparison.png

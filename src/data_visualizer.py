@@ -48,39 +48,108 @@ class DataVisualizer:
         self.end_img_path = os.path.join('data', 'enda.png')
         
     def create_all_visualizations(self, 
-                                 gyro_data: pd.DataFrame,
-                                 compass_data: pd.DataFrame,
-                                 ground_truth_data: pd.DataFrame,
-                                 interpolated_positions: pd.DataFrame = None,
-                                 positions_gyro: pd.DataFrame = None,
-                                 positions_compass: pd.DataFrame = None) -> None:
+                               gyro_data: pd.DataFrame, 
+                               compass_data: pd.DataFrame, 
+                               ground_truth_data: pd.DataFrame, 
+                               interpolated_positions: Optional[pd.DataFrame] = None) -> None:
         """
-        Create all visualizations for the sensor data.
+        Create all visualizations for the analyzed data.
         
         Args:
             gyro_data: DataFrame with gyroscope data
             compass_data: DataFrame with compass data
-            ground_truth_data: DataFrame with ground truth locations
-            interpolated_positions: DataFrame with interpolated ground truth positions
-            positions_gyro: DataFrame with positions calculated from gyro data
-            positions_compass: DataFrame with positions calculated from compass data
+            ground_truth_data: DataFrame with ground truth data
+            interpolated_positions: Optional DataFrame with interpolated ground truth positions
         """
-        # Create individual visualizations
-        self.plot_heading_comparison(gyro_data, compass_data, ground_truth_data)
+        logger.info("Creating all visualizations")
         
-        if interpolated_positions is not None:
-            self.plot_interpolated_positions(interpolated_positions, ground_truth_data)
+        # Create heading comparison visualization
+        self.create_heading_comparison(gyro_data, compass_data, ground_truth_data)
         
-        if positions_gyro is not None and positions_compass is not None:
-            self.plot_trajectory_comparison(positions_gyro, positions_compass, interpolated_positions)
-            self.plot_position_error(positions_gyro, positions_compass, interpolated_positions)
+        # Create fusion results visualization if fusion output exists
+        fusion_files = [
+            os.path.join(self.output_dir, '..', 'fusion', 'data', 'ekf_fused_heading.csv'),
+            os.path.join(self.output_dir, '..', 'fusion', 'data', 'ukf_fused_heading.csv'),
+            os.path.join(self.output_dir, '..', 'fusion', 'data', 'lstm_fused_heading.csv'),
+            os.path.join(self.output_dir, '..', 'fusion', 'data', 'adaptive_fused_heading.csv'),
+            os.path.join(self.output_dir, '..', 'fusion', 'data', 'context_fused_heading.csv')
+        ]
         
-        # Plot additional visualizations
-        self.plot_sensor_data_over_time(gyro_data, compass_data, ground_truth_data)
+        for fusion_file in fusion_files:
+            if os.path.exists(fusion_file):
+                method = os.path.basename(fusion_file).split('_')[0]
+                fused_data = pd.read_csv(fusion_file)
+                self.create_fusion_results(fused_data, gyro_data, compass_data, ground_truth_data, method)
         
-        logger.info(f"All visualizations created and saved to {self.output_dir}")
+        # Create interpolated positions visualization if available
+        if interpolated_positions is not None and len(interpolated_positions) > 0:
+            self.create_interpolated_positions_visualization(interpolated_positions)
     
-    def plot_heading_comparison(self, gyro_data: pd.DataFrame, compass_data: pd.DataFrame, 
+    def create_fusion_results(self, 
+                             fused_data: pd.DataFrame, 
+                             gyro_data: pd.DataFrame, 
+                             compass_data: pd.DataFrame,
+                             ground_truth_data: pd.DataFrame,
+                             method: str = 'ekf') -> None:
+        """
+        Create visualization for sensor fusion results.
+        
+        Args:
+            fused_data: DataFrame with fused heading data
+            gyro_data: DataFrame with gyroscope data
+            compass_data: DataFrame with compass data
+            ground_truth_data: DataFrame with ground truth data
+            method: Fusion method used (for visualizations)
+        """
+        logger.info(f"Creating {method.upper()} fusion results visualization")
+        
+        # Create figure
+        fig, ax = plt.subplots(figsize=(10, 6), dpi=200)
+        
+        # Plot fused heading
+        plt.plot(fused_data['Timestamp_(ms)'], fused_data['fused_heading'], 
+                 color='red', linewidth=1.5, label=f'{method.upper()} Fused Heading')
+        
+        # Plot gyro data
+        if 'gyroSumFromstart0' in gyro_data.columns:
+            # Align gyro data with the first fused heading for better comparison
+            gyro_offset = gyro_data['gyroSumFromstart0'].iloc[0] - fused_data['fused_heading'].iloc[0]
+            plt.plot(gyro_data['Timestamp_(ms)'], 
+                     gyro_data['gyroSumFromstart0'] - gyro_offset, 
+                     color='blue', linewidth=1, alpha=0.7, label='Gyro Data (Aligned)')
+        
+        # Plot compass data
+        if 'compass' in compass_data.columns:
+            plt.plot(compass_data['Timestamp_(ms)'], compass_data['compass'], 
+                     color='green', linewidth=1, alpha=0.5, label='Compass Data')
+        
+        # Plot ground truth if available
+        heading_column = None
+        if 'GroundTruthHeadingComputed' in ground_truth_data.columns:
+            heading_column = 'GroundTruthHeadingComputed'
+        else:
+            # Check for interpolated heading column
+            for col in ground_truth_data.columns:
+                if 'heading' in col.lower():
+                    heading_column = col
+                    break
+                    
+        if heading_column is not None and len(ground_truth_data) > 0:
+            plt.plot(ground_truth_data['Timestamp_(ms)'], ground_truth_data[heading_column], 
+                     color='black', linewidth=2, linestyle='--', label='Ground Truth')
+        
+        # Format plot
+        plt.xlabel('Timestamp (ms)')
+        plt.ylabel('Heading (degrees)')
+        plt.title(f'{method.upper()} Fusion Results: Combined Gyroscope and Compass Data')
+        plt.legend(loc='upper right')
+        plt.grid(True, alpha=0.3)
+        
+        # Save figure
+        plt.savefig(os.path.join(self.output_dir, f'{method}_fusion_results.png'), dpi=200, bbox_inches='tight')
+        plt.close()
+    
+    def create_heading_comparison(self, gyro_data: pd.DataFrame, compass_data: pd.DataFrame, 
                                ground_truth_data: pd.DataFrame, save: bool = True) -> None:
         """
         Plot and compare heading values from gyroscope, compass, and ground truth.

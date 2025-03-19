@@ -177,71 +177,133 @@ class SensorDataParser:
         bearing = (degrees(x) + 360) % 360  # Normalize to 0-360 degrees
         return bearing
     
-    def interpolate_ground_truth_positions(self, step_size: float = 0.5) -> pd.DataFrame:
+    def interpolate_ground_truth_positions(self) -> pd.DataFrame:
         """
-        Interpolate ground truth positions between manually labeled points.
+        Interpolate ground truth positions along the trajectory.
         
-        Args:
-            step_size: The step size for interpolation (in half steps)
-            
         Returns:
-            DataFrame with interpolated positions
+            DataFrame with interpolated ground truth positions
         """
-        combined_data = self.calculate_ground_truth_heading()
+        logger.info("Interpolating ground truth positions")
         
-        # Initialize an empty list to store the interpolated positions
+        # Set up empty DataFrame
         interpolated_positions = []
+        heading = 0
         
-        # Iterate over each pair of successive ground truth locations
-        for i in range(len(combined_data) - 1):
-            current_row = combined_data.iloc[i]
-            next_row = combined_data.iloc[i + 1]
-            
-            # Calculate the number of half steps between the current and next ground truth locations
-            num_half_steps = int((next_row['step'] - current_row['step']) * (1/step_size))
-            
-            # Calculate the step size for each half step
-            interp_step_size = (next_row['step'] - current_row['step']) / num_half_steps
-            
-            # Iterate over each half step and compute the interpolated position
-            for j in range(num_half_steps):
-                # Calculate the step for the current half step
-                half_step = current_row['step'] + j * interp_step_size
+        # Check if we have ground truth positions
+        ground_truth_data = self.ground_truth_data
+        
+        if len(ground_truth_data) <= 1:
+            logger.warning("Not enough ground truth positions for interpolation")
+            return pd.DataFrame()
+        
+        # Get ground truth positions with valid locations
+        valid_positions = []
+        for i, row in ground_truth_data.iterrows():
+            # Extract coordinates from GroundTruth field
+            if row['Type'] == 'Ground_Truth':
+                position = {'step': row['step']}
                 
-                # Calculate the interpolation factor
-                t = (half_step - current_row['step']) / (next_row['step'] - current_row['step'])
-                
-                # Calculate the interpolated position using linear interpolation
-                interpolated_position = {
-                    'Timestamp_(ms)': np.nan,
-                    'Type': 'Interpolated_Location',
-                    'step': half_step,
-                    'value_1': np.nan,
-                    'value_2': np.nan,
-                    'value_3': np.nan,
-                    'GroundTruth': np.nan,
-                    'value_4': current_row['value_4'] + t * (next_row['value_4'] - current_row['value_4']),
-                    'value_5': current_row['value_5'] + t * (next_row['value_5'] - current_row['value_5']),
-                    'GroundTruthHeadingComputed': np.nan
-                }
-                
-                # Append the interpolated position to the list
-                interpolated_positions.append(interpolated_position)
+                # Parse GroundTruth coordinates
+                if pd.notna(row['value_4']) and pd.notna(row['value_5']):
+                    position['x'] = float(row['value_4'])
+                    position['y'] = float(row['value_5'])
+                    position['timestamp'] = row['Timestamp_(ms)'] if pd.notna(row['Timestamp_(ms)']) else None
+                    valid_positions.append(position)
         
-        # Append the last ground truth location to the list
-        interpolated_positions.append(combined_data.iloc[-1].to_dict())
+        # Need at least 2 positions to interpolate
+        if len(valid_positions) < 2:
+            logger.warning("Not enough valid ground truth positions for interpolation")
+            return pd.DataFrame()
         
-        # Create a DataFrame from the list of interpolated positions
-        interpolated_positions_df = pd.DataFrame(interpolated_positions)
+        # Get timestamps from sensor data for interpolation
+        gyro_timestamps = self.gyro_data['Timestamp_(ms)'].values
+        compass_timestamps = self.compass_data['Timestamp_(ms)'].values
         
-        # Sort the DataFrame by the 'step' column
-        interpolated_positions_df.sort_values(by='step', inplace=True)
+        # Combine all timestamps and sort
+        all_timestamps = np.unique(np.concatenate([gyro_timestamps, compass_timestamps]))
+        all_timestamps.sort()
         
-        # Reset the index of the DataFrame
-        interpolated_positions_df.reset_index(drop=True, inplace=True)
+        # Filter timestamps to range of valid ground truth times
+        start_time = valid_positions[0]['timestamp'] if valid_positions[0]['timestamp'] is not None else all_timestamps[0]
+        end_time = valid_positions[-1]['timestamp'] if valid_positions[-1]['timestamp'] is not None else all_timestamps[-1]
         
-        logger.info(f"Generated {len(interpolated_positions_df)} interpolated ground truth positions")
-        return interpolated_positions_df
+        filtered_timestamps = all_timestamps[(all_timestamps >= start_time) & (all_timestamps <= end_time)]
+        
+        # Prepare for interpolation
+        gt_steps = [pos['step'] for pos in valid_positions]
+        gt_x = [pos['x'] for pos in valid_positions]
+        gt_y = [pos['y'] for pos in valid_positions]
+        
+        # Calculate headings between consecutive ground truth positions
+        headings = []
+        for i in range(len(valid_positions) - 1):
+            x1, y1 = valid_positions[i]['x'], valid_positions[i]['y']
+            x2, y2 = valid_positions[i+1]['x'], valid_positions[i+1]['y']
+            
+            # Calculate direction vector
+            dx = x2 - x1
+            dy = y2 - y1
+            
+            # Calculate heading in degrees (0 = East, 90 = North, 180 = West, 270 = South)
+            heading = np.degrees(np.arctan2(dy, dx)) % 360
+            headings.append(heading)
+        
+        # Add the last heading (same as the previous one)
+        if headings:
+            headings.append(headings[-1])
+        else:
+            # Default heading if we couldn't calculate any
+            headings = [0] * len(valid_positions)
+        
+        # Store headings in valid_positions
+        for i in range(len(valid_positions)):
+            valid_positions[i]['heading'] = headings[i]
+        
+        logger.info(f"Ground truth headings calculated for {len(headings)-1} position changes")
+        
+        # Calculate total distance of the path
+        total_distance = 0
+        for i in range(len(valid_positions) - 1):
+            x1, y1 = valid_positions[i]['x'], valid_positions[i]['y']
+            x2, y2 = valid_positions[i+1]['x'], valid_positions[i+1]['y']
+            segment_distance = np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+            total_distance += segment_distance
+        
+        # Create interpolation based on step number
+        num_steps = gt_steps[-1] - gt_steps[0]
+        interpolation_steps = np.arange(gt_steps[0], gt_steps[-1] + 0.5, 0.5)
+        
+        # Interpolate x, y and heading coordinates
+        x_interp = np.interp(interpolation_steps, gt_steps, gt_x)
+        y_interp = np.interp(interpolation_steps, gt_steps, gt_y)
+        heading_interp = np.interp(interpolation_steps, gt_steps, headings)
+        
+        # Create interpolated positions DataFrame
+        for i in range(len(interpolation_steps)):
+            step = interpolation_steps[i]
+            x = x_interp[i]
+            y = y_interp[i]
+            heading = heading_interp[i]
+            
+            interpolated_positions.append({
+                'Timestamp_(ms)': None,  # Will be filled later if possible
+                'Type': 'Interpolated_Location',
+                'step': step,
+                'value_1': None,
+                'value_2': None,
+                'value_3': None,
+                'GroundTruth': None,
+                'value_4': x,
+                'value_5': y,
+                'GroundTruthHeadingComputed': heading,
+                'turns': None
+            })
+        
+        interpolated_df = pd.DataFrame(interpolated_positions)
+        logger.info(f"Generated {len(interpolated_df)} interpolated ground truth positions")
+        
+        return interpolated_df
 
 # Helper function to list available sensor data files
 def list_available_data_files(data_dir: str = 'data') -> List[str]:

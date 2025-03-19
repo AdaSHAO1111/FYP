@@ -17,6 +17,7 @@ from src.data_parser import SensorDataParser, list_available_data_files
 from src.data_cleaner import SensorDataCleaner
 from src.data_visualizer import DataVisualizer
 from src.anomaly_detector import SensorAnomalyDetector
+from src.sensor_fusion import SensorFusion  # Import the new sensor fusion module
 
 # Set up logging
 logging.basicConfig(
@@ -45,6 +46,10 @@ def parse_arguments():
                         help='Detect anomalies in the data')
     parser.add_argument('--interpolate', action='store_true',
                         help='Interpolate ground truth positions')
+    parser.add_argument('--fusion', choices=['ekf', 'ukf', 'lstm', 'adaptive', 'context'], default=None,
+                        help='Apply sensor fusion using the specified method')
+    parser.add_argument('--benchmark', action='store_true',
+                        help='Run benchmark comparison of all fusion methods')
     
     return parser.parse_args()
 
@@ -54,6 +59,7 @@ def ensure_output_dirs(output_dir):
     os.makedirs(os.path.join(output_dir, 'plots'), exist_ok=True)
     os.makedirs(os.path.join(output_dir, 'data'), exist_ok=True)
     os.makedirs(os.path.join(output_dir, 'anomalies'), exist_ok=True)
+    os.makedirs(os.path.join(output_dir, 'fusion'), exist_ok=True)  # Add fusion directory
 
 def main():
     """Main function to process sensor data."""
@@ -152,51 +158,67 @@ def main():
         interpolated_positions = parser.interpolate_ground_truth_positions()
         
         # Save interpolated positions
-        interpolated_positions.to_csv(
-            os.path.join(args.output_dir, 'data', 'interpolated_positions.csv'),
-            index=False
-        )
+        interpolated_positions.to_csv(os.path.join(cleaned_data_output_dir, 'interpolated_positions.csv'), index=False)
     
-    # Create visualizations if requested
+    # Apply sensor fusion if requested
+    if args.fusion:
+        logger.info(f"Applying sensor fusion using {args.fusion.upper()} method")
+        
+        # Initialize sensor fusion
+        fusion = SensorFusion(output_dir=os.path.join(args.output_dir, 'fusion'))
+        
+        # Select data to use (use anomaly results if available, otherwise cleaned data)
+        gyro_data_for_fusion = anomaly_results['gyro'] if args.detect_anomalies else cleaned_data['gyro']
+        compass_data_for_fusion = anomaly_results['compass'] if args.detect_anomalies else cleaned_data['compass']
+        
+        # Apply the fusion method
+        fused_data = fusion.fuse_sensors(
+            gyro_data_for_fusion,
+            compass_data_for_fusion,
+            method=args.fusion,
+            ground_truth_data=cleaned_data['ground_truth'],
+            visualize=args.visualize
+        )
+        
+        logger.info(f"Sensor fusion completed with {len(fused_data)} data points")
+    
+    # Run benchmark comparison if requested
+    if args.benchmark:
+        logger.info("Running benchmark comparison of all fusion methods")
+        
+        # Initialize sensor fusion
+        fusion = SensorFusion(output_dir=os.path.join(args.output_dir, 'fusion'))
+        
+        # Select data to use (use anomaly results if available, otherwise cleaned data)
+        gyro_data_for_fusion = anomaly_results['gyro'] if args.detect_anomalies else cleaned_data['gyro']
+        compass_data_for_fusion = anomaly_results['compass'] if args.detect_anomalies else cleaned_data['compass']
+        
+        # Run benchmark
+        methods = ['ekf', 'ukf', 'lstm', 'adaptive', 'context']
+        benchmark_results = fusion.benchmark_fusion_methods(
+            gyro_data_for_fusion,
+            compass_data_for_fusion,
+            ground_truth_data=cleaned_data['ground_truth'],
+            methods=methods,
+            visualize=args.visualize
+        )
+        
+        logger.info("Benchmark comparison completed")
+    
+    # Generate visualizations if requested
     if args.visualize:
+        logger.info("Generating visualizations")
         visualizer = DataVisualizer(output_dir=os.path.join(args.output_dir, 'plots'))
         
-        # Add ground truth heading to gyro and compass data if available
-        if 'ground_truth' in cleaned_data:
-            ground_truth_with_heading = parser.calculate_ground_truth_heading()
-            
-            # Join with gyro and compass data
-            if 'gyro' in cleaned_data and not cleaned_data['gyro'].empty:
-                cleaned_data['gyro'] = pd.merge_asof(
-                    cleaned_data['gyro'].sort_values('Timestamp_(ms)'),
-                    ground_truth_with_heading[['step', 'GroundTruthHeadingComputed']].sort_values('step'),
-                    left_on='step',
-                    right_on='step',
-                    direction='nearest'
-                )
-            
-            if 'compass' in cleaned_data and not cleaned_data['compass'].empty:
-                cleaned_data['compass'] = pd.merge_asof(
-                    cleaned_data['compass'].sort_values('Timestamp_(ms)'),
-                    ground_truth_with_heading[['step', 'GroundTruthHeadingComputed']].sort_values('step'),
-                    left_on='step',
-                    right_on='step',
-                    direction='nearest'
-                )
-        
-        # Create data visualizations
+        # Create visualizations
         visualizer.create_all_visualizations(
             cleaned_data['gyro'],
             cleaned_data['compass'],
             cleaned_data['ground_truth'],
-            interpolated_positions=interpolated_positions
+            interpolated_positions
         )
-        
-        # Plot magnetic field variation if compass data available
-        if 'compass' in cleaned_data and not cleaned_data['compass'].empty:
-            visualizer.plot_magnetic_field_variation(cleaned_data['compass'])
     
-    logger.info("Processing complete!")
+    logger.info("Processing completed successfully")
 
 if __name__ == "__main__":
     main() 

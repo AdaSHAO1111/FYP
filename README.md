@@ -1,97 +1,221 @@
-# Indoor Navigation System - Phase 1: Data Preprocessing and Classification
+# Indoor Navigation System with AI/ML Sensor Fusion
 
-This project implements an indoor navigation system that combines gyroscope and compass data to improve heading estimation. This repository contains the Phase 1 implementation, focusing on data preprocessing and classification.
+This project implements advanced AI/ML algorithms for indoor navigation using sensor fusion techniques to combine gyroscope and compass data for improved heading estimation and positioning.
 
 ## Project Overview
 
-The indoor navigation system aims to improve heading estimation by combining gyroscope and compass data. The project follows a phased approach:
+Indoor navigation is challenging due to the absence of GPS signals. This system addresses this challenge by combining data from various sensors (primarily gyroscope and compass) using sophisticated sensor fusion algorithms to achieve accurate heading estimation, which is critical for reliable indoor positioning.
 
-1. **Phase 1: Data Preprocessing and Classification** (Current Phase)
-2. Phase 2: Sensor Fusion and Improved Heading Estimation
-3. Phase 3: Advanced Position Tracking and Navigation
-4. Phase 4: Adaptive Quasi-Static Detection
-5. Phase 5: System Integration and Deployment
+The system is developed in a phased approach:
 
-## Phase 1 Implementation
+- **Phase 1**: Data Preprocessing and Classification
+- **Phase 2**: Sensor Fusion and Improved Heading Estimation
+- **Phase 3**: Advanced Position Tracking and Navigation (Future)
+- **Phase 4**: Adaptive Quasi-Static Detection (Future)
+- **Phase 5**: System Integration and Deployment (Future)
 
-The Phase 1 implementation includes:
+## System Architecture
 
-1. **Data Parsing**: Automatically identify and classify different sensor data types (Gyroscope, Compass, Ground Truth)
-2. **Data Cleaning**: Handle duplicates, outliers, and inconsistencies in the sensor data
-3. **Visualization Pipeline**: Create visualizations for raw data exploration
-4. **Anomaly Detection**: Detect and classify unclassifiable data or anomalies
-
-### Project Structure
+The system is structured as follows:
 
 ```
-.
-├── data/                      # Raw sensor data
-├── output/                    # Output directory for processed data and visualizations
-│   ├── anomalies/             # Anomaly detection results
-│   ├── data/                  # Processed data
-│   └── plots/                 # Data visualizations
-├── src/                       # Source code
-│   ├── data_parser.py         # Module for parsing and classifying sensor data
-│   ├── data_cleaner.py        # Module for cleaning sensor data
-│   ├── data_visualizer.py     # Module for creating visualizations
-│   └── anomaly_detector.py    # Module for detecting anomalies
-├── main.py                    # Main program
-├── requirements.txt           # Project dependencies
-└── README.md                  # Project documentation
+Indoor Navigation System
+├── Data Collection
+├── Data Preprocessing
+│   ├── Data Parsing
+│   ├── Data Cleaning
+│   └── Anomaly Detection
+├── Sensor Fusion
+│   ├── Extended Kalman Filter (EKF)
+│   ├── Unscented Kalman Filter (UKF) 
+│   ├── LSTM Neural Networks
+│   ├── Adaptive Filtering
+│   └── Context-Aware Models
+├── Evaluation
+│   ├── Benchmark System
+│   └── Performance Metrics
+└── Visualization
 ```
 
-## Installation
+## Key Concepts
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd indoor-navigation-system
-```
+### Sensor Fusion
 
-2. Install the required dependencies:
-```bash
-pip install -r requirements.txt
-```
+Sensor fusion combines data from multiple sensors to achieve more accurate and reliable information than would be possible when using these sensors individually. In this project, we focus on fusing gyroscope and compass data to estimate heading accurately.
+
+**Why Sensor Fusion is Necessary:**
+- **Gyroscope**: Provides precise short-term angular velocity measurements but suffers from drift over time
+- **Compass**: Provides absolute heading measurements but is susceptible to magnetic disturbances
+- **Fusion**: Combines the strengths of both sensors while minimizing their weaknesses
+
+### Kalman Filtering
+
+Kalman filtering is a recursive algorithm that uses a series of measurements over time to estimate unknown variables with higher precision than would be possible using a single measurement.
+
+**Extended Kalman Filter (EKF):**
+- Handles non-linear systems through linearization around the current state estimate
+- Uses a two-step process: prediction and update
+- In our system, it predicts heading using gyroscope data and corrects it using compass data
+
+**Unscented Kalman Filter (UKF):**
+- Improves upon EKF by using sigma points to approximate probability distributions
+- Better handles non-linearities without explicit linearization
+- Provides more accurate state estimation in highly non-linear systems
+
+### Deep Learning Approaches
+
+**LSTM Neural Networks:**
+- Long Short-Term Memory networks are a type of recurrent neural network
+- Can learn temporal patterns in sequential sensor data
+- Automatically handle complex non-linearities in the sensor relationships
+- Can be trained to ignore unreliable sensor readings based on patterns
+
+### Adaptive and Context-Aware Models
+
+**Adaptive Filtering:**
+- Dynamically adjusts filter parameters based on detected movement patterns
+- Identifies stationary vs. moving states
+- Applies different weights to gyroscope and compass data based on the current motion state
+
+**Context-Aware Models:**
+- Detect and adapt to different environmental conditions (stable/unstable magnetic fields)
+- Leverage environmental information to optimize sensor fusion parameters
+- Handle different magnetic disturbance scenarios by adjusting trust in compass data
+
+## Implemented Functionality
+
+### Phase 1: Data Preprocessing and Classification
+
+1. **Data Parsing**: Automatically identifies and classifies different sensor data
+   - Gyroscope data: Contains angular velocity measurements
+   - Compass data: Contains heading information based on the Earth's magnetic field
+   - Ground Truth data: Contains reference positions for validation
+
+2. **Data Cleaning**:
+   - Removes duplicate timestamps
+   - Identifies and handles outliers
+   - Interpolates missing data when necessary
+
+3. **Anomaly Detection**:
+   - Uses Isolation Forest and Local Outlier Factor algorithms to detect anomalies
+   - Identifies sudden jumps in gyroscope and compass readings
+   - Flags anomalous magnetic field measurements
+
+4. **Visualization**:
+   - Creates visualizations for raw sensor data
+   - Displays detected anomalies
+   - Shows the relationship between different sensors
+
+### Phase 2: Sensor Fusion and Improved Heading Estimation
+
+1. **Extended Kalman Filter (EKF)**:
+   - Implements a classic sensor fusion approach
+   - Predicts heading using gyroscope data
+   - Updates predictions using compass data
+   - Handles sensor uncertainty through covariance matrices
+
+2. **Unscented Kalman Filter (UKF)**:
+   - Implements a more advanced Kalman filter variant
+   - Uses sigma points to better approximate non-linear transformations
+   - Provides improved accuracy for highly non-linear systems
+
+3. **LSTM-Based Fusion**:
+   - Implements deep learning approach using LSTM networks
+   - Learns temporal patterns from sequences of sensor readings
+   - Outputs heading estimation that accounts for sensor biases and drift
+   - Requires ground truth data for training
+
+4. **Adaptive Filtering**:
+   - Implements motion state detection
+   - Adjusts process and measurement noise based on detected movement
+   - Optimizes the fusion process for different scenarios
+
+5. **Context-Aware Models**:
+   - Detects the environment type (stable, moderate, unstable)
+   - Adjusts trust in sensors based on magnetic field stability
+   - Provides reliability assessment for compass measurements
+
+6. **Benchmark System**:
+   - Evaluates and compares different fusion methods
+   - Calculates performance metrics (MAE, RMSE, etc.)
+   - Visualizes comparison results
+
+## Workflow
+
+The system follows this workflow:
+
+1. **Data Acquisition**: Collect sensor data from gyroscope and compass
+2. **Data Preprocessing**:
+   - Parse and classify the data
+   - Clean the data (remove outliers, duplicates)
+   - Detect anomalies in the data
+3. **Sensor Fusion**:
+   - Apply one or more fusion algorithms
+   - Combine gyroscope and compass data
+   - Output estimated heading
+4. **Evaluation**:
+   - Compare estimated heading with ground truth
+   - Calculate error metrics
+   - Visualize results
 
 ## Usage
 
-The main program can be run with various command-line arguments:
+### Basic Usage
 
 ```bash
-python main.py --data_dir data --output_dir output --visualize --detect_anomalies --interpolate
+python main.py --fusion ekf --visualize
 ```
 
-### Command-line Arguments
+This command processes the sensor data using the Extended Kalman Filter and generates visualizations.
 
-- `--data_dir`: Directory containing the sensor data files (default: 'data')
-- `--file`: Specific data file to process (if not specified, the first file will be used)
-- `--output_dir`: Directory to save output files (default: 'output')
+### Advanced Usage
+
+```bash
+python main.py --fusion ukf --visualize --detect_anomalies --interpolate
+```
+
+This command:
+- Processes the sensor data using the Unscented Kalman Filter
+- Detects anomalies in the data
+- Interpolates ground truth positions
+- Generates visualizations
+
+### Benchmarking
+
+```bash
+python main.py --benchmark --visualize
+```
+
+This command runs all implemented fusion methods and compares their performance.
+
+## Command Line Arguments
+
+- `--data_dir`: Directory containing sensor data files
+- `--file`: Specific data file to process
+- `--output_dir`: Directory to save output files
 - `--visualize`: Generate visualizations
 - `--detect_anomalies`: Detect anomalies in the data
 - `--interpolate`: Interpolate ground truth positions
+- `--fusion`: Fusion method to use (ekf, ukf, lstm, adaptive, context)
+- `--benchmark`: Run benchmark comparison of all fusion methods
 
-## Data Format
+## Results and Performance
 
-The system expects data files in CSV format with semicolon (;) as the delimiter. The data should have the following columns:
-- `Timestamp_(ms)`: Timestamp in milliseconds
-- `Type`: Sensor type ('Gyro', 'Compass', 'Ground_truth_Location', 'Initial_Location')
-- `step`: Step number
-- Additional columns specific to each sensor type
+The system generates various outputs:
 
-## Example Visualizations
+- **Fusion Results**: CSV files containing fused heading data
+- **Visualizations**: PNG files showing comparisons between different sensors and fusion methods
+- **Benchmark Reports**: Comparison of different fusion methods using various metrics
 
-The visualization pipeline creates several plots to explore the data:
+## Future Development
 
-1. Heading comparison between gyroscope, compass, and ground truth
-2. Sensor data over time
-3. Interpolated ground truth positions
-4. Magnetic field variation over time
-5. Anomaly detection visualizations
+Future phases will focus on:
 
-## Next Steps
+- Advanced position tracking using deep learning
+- Quasi-static detection optimization
+- Unified pipeline for real-time heading correction
+- Deployment framework for mobile devices
 
-The next phase (Phase 2) will focus on sensor fusion and improved heading estimation:
-- Implement Kalman Filter variants (Extended, Unscented)
-- Explore deep learning approaches (LSTM, GRU networks)
-- Design end-to-end neural networks for heading estimation
-- Create a benchmark system to evaluate heading estimation accuracy
+## Conclusion
+
+This indoor navigation system demonstrates the power of combining traditional signal processing techniques with modern AI/ML approaches. By fusing data from multiple sensors and adapting to different environmental conditions, the system provides robust heading estimation for indoor navigation applications.
