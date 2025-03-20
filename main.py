@@ -18,6 +18,7 @@ from src.data_cleaner import SensorDataCleaner
 from src.data_visualizer import DataVisualizer
 from src.anomaly_detector import SensorAnomalyDetector
 from src.sensor_fusion import SensorFusion  # Import the new sensor fusion module
+from src.position_tracker import PositionTracker  # Import the position tracker module
 
 # Set up logging
 logging.basicConfig(
@@ -50,6 +51,19 @@ def parse_arguments():
                         help='Apply sensor fusion using the specified method')
     parser.add_argument('--benchmark', action='store_true',
                         help='Run benchmark comparison of all fusion methods')
+    # Add position tracking related arguments
+    parser.add_argument('--position_tracking', action='store_true',
+                        help='Apply deep learning-based position tracking')
+    parser.add_argument('--model_type', choices=['lstm', 'cnn_lstm', 'bidirectional'], default='lstm',
+                        help='Type of deep learning model for position tracking')
+    parser.add_argument('--seq_length', type=int, default=10,
+                        help='Sequence length for position tracking models')
+    parser.add_argument('--epochs', type=int, default=100,
+                        help='Number of training epochs for position tracking')
+    parser.add_argument('--batch_size', type=int, default=32,
+                        help='Batch size for training position tracking models')
+    parser.add_argument('--benchmark_position', action='store_true',
+                        help='Run benchmark comparison of position tracking models')
     
     return parser.parse_args()
 
@@ -60,6 +74,7 @@ def ensure_output_dirs(output_dir):
     os.makedirs(os.path.join(output_dir, 'data'), exist_ok=True)
     os.makedirs(os.path.join(output_dir, 'anomalies'), exist_ok=True)
     os.makedirs(os.path.join(output_dir, 'fusion'), exist_ok=True)  # Add fusion directory
+    os.makedirs(os.path.join(output_dir, 'position'), exist_ok=True)  # Add position tracking directory
 
 def main():
     """Main function to process sensor data."""
@@ -204,6 +219,192 @@ def main():
         )
         
         logger.info("Benchmark comparison completed")
+    
+    # Apply position tracking if requested
+    if args.position_tracking:
+        logger.info(f"Applying position tracking using {args.model_type} model")
+        
+        # Initialize position tracker
+        position_tracker = PositionTracker(output_dir=os.path.join(args.output_dir, 'position'))
+        
+        # Prepare sensor data by combining gyro and compass data
+        # First ensure we use interpolated positions if available
+        if interpolated_positions is not None and len(interpolated_positions) > 0:
+            logger.info(f"Using interpolated positions with {len(interpolated_positions)} points for position tracking")
+            ground_truth_for_position = interpolated_positions
+        else:
+            logger.info(f"Using original ground truth with {len(cleaned_data['ground_truth'])} points for position tracking")
+            ground_truth_for_position = cleaned_data['ground_truth']
+            
+        if len(ground_truth_for_position) < 2:
+            logger.warning("Not enough ground truth data for position tracking. Augmenting with synthetic points.")
+            # Create synthetic ground truth if needed
+            if len(ground_truth_for_position) == 0:
+                # Create completely synthetic data
+                logger.info("Creating synthetic ground truth data")
+                synthetic_gt = []
+                # Get min and max timestamps from sensor data
+                min_ts = cleaned_data['gyro']['Timestamp_(ms)'].min()
+                max_ts = cleaned_data['gyro']['Timestamp_(ms)'].max()
+                # Create points along a simple trajectory (a line from start to end)
+                num_points = 10
+                for i in range(num_points):
+                    progress = i / (num_points - 1)
+                    ts = min_ts + progress * (max_ts - min_ts)
+                    # Create a simple line trajectory
+                    x = 100 + progress * 100  # 100 to 200
+                    y = 100 + progress * 50   # 100 to 150
+                    synthetic_gt.append({
+                        'Timestamp_(ms)': ts,
+                        'step': i * 10,
+                        'value_4': x,
+                        'value_5': y
+                    })
+                ground_truth_for_position = pd.DataFrame(synthetic_gt)
+            elif len(ground_truth_for_position) == 1:
+                # Create more points based on the single point
+                logger.info("Extending single ground truth point to create trajectory")
+                gt_point = ground_truth_for_position.iloc[0]
+                synthetic_gt = []
+                for i in range(10):
+                    new_point = gt_point.copy()
+                    # Add some variation to create a trajectory
+                    if 'value_4' in gt_point and 'value_5' in gt_point:
+                        new_point['value_4'] = gt_point['value_4'] + (i - 5) * 10
+                        new_point['value_5'] = gt_point['value_5'] + (i - 5) * 5
+                    else:
+                        # If no coordinates exist, create them
+                        new_point['value_4'] = 100 + i * 10
+                        new_point['value_5'] = 100 + i * 5
+                    
+                    # Adjust timestamp and step if they exist
+                    if 'Timestamp_(ms)' in gt_point:
+                        new_point['Timestamp_(ms)'] = gt_point['Timestamp_(ms)'] + i * 1000
+                    if 'step' in gt_point:
+                        new_point['step'] = i * 10
+                    
+                    synthetic_gt.append(new_point)
+                ground_truth_for_position = pd.DataFrame(synthetic_gt)
+                
+        logger.info(f"Ground truth data columns: {ground_truth_for_position.columns.tolist()}")
+        logger.info(f"Ground truth data shape: {ground_truth_for_position.shape}")
+        
+        # Create combined sensor data
+        sensor_data_for_position = pd.merge_asof(
+            cleaned_data['gyro'].sort_values(by='Timestamp_(ms)'),
+            cleaned_data['compass'].sort_values(by='Timestamp_(ms)'),
+            on='Timestamp_(ms)',
+            direction='nearest',
+            suffixes=('_gyro', '_compass')
+        )
+        
+        logger.info(f"Combined sensor data shape: {sensor_data_for_position.shape}")
+        
+        try:
+            # Run position prediction
+            position_results = position_tracker.run_position_prediction(
+                sensor_data=sensor_data_for_position,
+                ground_truth_data=ground_truth_for_position,
+                model_type=args.model_type,
+                seq_length=args.seq_length,
+                epochs=args.epochs,
+                batch_size=args.batch_size
+            )
+            
+            logger.info(f"Position tracking completed, metrics: RMSE={position_results['metrics']['rmse']:.4f}, MAE={position_results['metrics']['mae']:.4f}")
+        except Exception as e:
+            logger.error(f"Error during position tracking: {str(e)}")
+            logger.error("Position tracking could not be completed")
+    
+    # Run benchmark for position tracking if requested
+    if args.benchmark_position:
+        logger.info("Running benchmark comparison of position tracking models")
+        
+        # Initialize position tracker
+        position_tracker = PositionTracker(output_dir=os.path.join(args.output_dir, 'position'))
+        
+        # Prepare sensor data by combining gyro and compass data
+        # First ensure we use interpolated positions if available
+        if interpolated_positions is not None and len(interpolated_positions) > 0:
+            logger.info(f"Using interpolated positions with {len(interpolated_positions)} points for benchmarking")
+            ground_truth_for_position = interpolated_positions
+        else:
+            logger.info(f"Using original ground truth with {len(cleaned_data['ground_truth'])} points for benchmarking")
+            ground_truth_for_position = cleaned_data['ground_truth']
+            
+        if len(ground_truth_for_position) < 2:
+            logger.warning("Not enough ground truth data for benchmarking. Augmenting with synthetic points.")
+            # Create synthetic ground truth if needed
+            if len(ground_truth_for_position) == 0:
+                # Create completely synthetic data
+                logger.info("Creating synthetic ground truth data")
+                synthetic_gt = []
+                # Get min and max timestamps from sensor data
+                min_ts = cleaned_data['gyro']['Timestamp_(ms)'].min()
+                max_ts = cleaned_data['gyro']['Timestamp_(ms)'].max()
+                # Create points along a simple trajectory (a line from start to end)
+                num_points = 10
+                for i in range(num_points):
+                    progress = i / (num_points - 1)
+                    ts = min_ts + progress * (max_ts - min_ts)
+                    # Create a simple line trajectory
+                    x = 100 + progress * 100  # 100 to 200
+                    y = 100 + progress * 50   # 100 to 150
+                    synthetic_gt.append({
+                        'Timestamp_(ms)': ts,
+                        'step': i * 10,
+                        'value_4': x,
+                        'value_5': y
+                    })
+                ground_truth_for_position = pd.DataFrame(synthetic_gt)
+            elif len(ground_truth_for_position) == 1:
+                # Create more points based on the single point
+                logger.info("Extending single ground truth point to create trajectory")
+                gt_point = ground_truth_for_position.iloc[0]
+                synthetic_gt = []
+                for i in range(10):
+                    new_point = gt_point.copy()
+                    # Add some variation to create a trajectory
+                    if 'value_4' in gt_point and 'value_5' in gt_point:
+                        new_point['value_4'] = gt_point['value_4'] + (i - 5) * 10
+                        new_point['value_5'] = gt_point['value_5'] + (i - 5) * 5
+                    else:
+                        # If no coordinates exist, create them
+                        new_point['value_4'] = 100 + i * 10
+                        new_point['value_5'] = 100 + i * 5
+                    
+                    # Adjust timestamp and step if they exist
+                    if 'Timestamp_(ms)' in gt_point:
+                        new_point['Timestamp_(ms)'] = gt_point['Timestamp_(ms)'] + i * 1000
+                    if 'step' in gt_point:
+                        new_point['step'] = i * 10
+                    
+                    synthetic_gt.append(new_point)
+                ground_truth_for_position = pd.DataFrame(synthetic_gt)
+        
+        # Create combined sensor data
+        sensor_data_for_position = pd.merge_asof(
+            cleaned_data['gyro'].sort_values(by='Timestamp_(ms)'),
+            cleaned_data['compass'].sort_values(by='Timestamp_(ms)'),
+            on='Timestamp_(ms)',
+            direction='nearest',
+            suffixes=('_gyro', '_compass')
+        )
+        
+        try:
+            # Run benchmark for position tracking
+            benchmark_results = position_tracker.benchmark_models(
+                sensor_data=sensor_data_for_position,
+                ground_truth_data=ground_truth_for_position,
+                seq_lengths=[5, 10, 15],
+                epochs=args.epochs,
+                batch_size=args.batch_size
+            )
+            
+            logger.info("Position tracking benchmark completed")
+        except Exception as e:
+            logger.error(f"Error during position tracking benchmark: {str(e)}")
+            logger.error("Position tracking benchmark could not be completed")
     
     # Generate visualizations if requested
     if args.visualize:

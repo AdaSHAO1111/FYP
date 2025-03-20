@@ -10,7 +10,7 @@ The system is developed in a phased approach:
 
 - **Phase 1**: Data Preprocessing and Classification
 - **Phase 2**: Sensor Fusion and Improved Heading Estimation
-- **Phase 3**: Advanced Position Tracking and Navigation (Future)
+- **Phase 3**: Advanced Position Tracking and Navigation (Current Phase)
 - **Phase 4**: Adaptive Quasi-Static Detection (Future)
 - **Phase 5**: System Integration and Deployment (Future)
 
@@ -31,6 +31,10 @@ Indoor Navigation System
 │   ├── LSTM Neural Networks
 │   ├── Adaptive Filtering
 │   └── Context-Aware Models
+├── Position Tracking
+│   ├── LSTM Models
+│   ├── CNN-LSTM Models
+│   └── Bidirectional LSTM Models
 ├── Evaluation
 │   ├── Benchmark System
 │   └── Performance Metrics
@@ -69,6 +73,18 @@ Kalman filtering is a recursive algorithm that uses a series of measurements ove
 - Can learn temporal patterns in sequential sensor data
 - Automatically handle complex non-linearities in the sensor relationships
 - Can be trained to ignore unreliable sensor readings based on patterns
+
+**CNN-LSTM Models:**
+- Combines Convolutional Neural Networks with LSTM architectures
+- CNNs extract local features from sensor data
+- LSTMs model the temporal dependencies in the extracted features
+- Provides better feature extraction for position prediction
+
+**Bidirectional LSTM Models:**
+- Process data in both forward and backward directions
+- Capture future context in addition to past context
+- Improve prediction accuracy by utilizing information from both directions
+- Particularly effective for complex trajectory modeling
 
 ### Adaptive and Context-Aware Models
 
@@ -140,6 +156,58 @@ Kalman filtering is a recursive algorithm that uses a series of measurements ove
    - Calculates performance metrics (MAE, RMSE, etc.)
    - Visualizes comparison results
 
+### Phase 3: Advanced Position Tracking and Navigation
+
+1. **LSTM-based Dead Reckoning Algorithm** (Phase 3.1):
+   - Implementation in `src/phase3_position_tracking.py`
+   - Uses LSTM networks to predict position changes (dx, dy) from sensor data
+   - Processes sequences of sensor readings to capture motion patterns
+   - Reconstructs complete trajectories by accumulating predicted changes
+   - Includes position trajectory visualization features
+   - Provides various metrics for evaluating prediction accuracy
+
+2. **Neural Network for Step Length Estimation** (Phase 3.1):
+   - Implementation in `src/phase3_position_tracking.py`
+   - Uses LSTM architecture to predict step length from sensor data
+   - Processes sensor sequence data to understand walking patterns
+   - Outputs positive step length values (using ReLU activation)
+   - Includes step length visualization and evaluation metrics
+   - Creates foundation for more accurate position tracking
+
+3. **Unified Position Tracking Pipeline** (Phase 3.1):
+   - Implementation in `src/run_phase3.py`
+   - Orchestrates the position tracking process from data loading to evaluation
+   - Handles data preprocessing, model training, and result visualization
+   - Automatically processes sensor data to create feature sequences
+   - Saves model artifacts and performance metrics
+   - Updates roadmap to track implementation progress
+
+4. **Position Tracking Models** (Phase 3.1):
+   - Implements various LSTM architectures for position prediction:
+     - Basic LSTM: Standard LSTM layers for sequence processing
+     - CNN-LSTM: Combines convolutional layers for feature extraction with LSTM
+     - Bidirectional LSTM: Processes data in both forward and backward directions
+   - Compares model performance using visualization and metrics
+   - Each model provides different trade-offs between accuracy and complexity
+
+5. **Position Data Processing** (Phase 3.1):
+   - Handles special processing required for position data
+   - Creates sequences suitable for LSTM processing
+   - Normalizes sensor and position data for effective training
+   - Implements feature engineering to improve position prediction
+   - Leverages step data and heading information from multiple sensors
+
+6. **Trajectory Reconstruction and Evaluation** (Phase 3.1):
+   - Reconstructs complete movement trajectories from predicted position changes
+   - Visualizes actual vs. predicted paths
+   - Calculates error metrics including:
+     - Average distance error
+     - Median distance error
+     - 90th percentile error
+   - Identifies areas of high prediction error for further improvement
+
+Note: The remaining Phase 3 components (weighted multi-model ensemble, real-time error correction, and transfer learning) are planned for future implementation.
+
 ## Workflow
 
 The system follows this workflow:
@@ -153,8 +221,12 @@ The system follows this workflow:
    - Apply one or more fusion algorithms
    - Combine gyroscope and compass data
    - Output estimated heading
-4. **Evaluation**:
-   - Compare estimated heading with ground truth
+4. **Position Tracking**:
+   - Process fused sensor data with deep learning models
+   - Predict x,y coordinates based on sensor patterns
+   - Generate position trajectory
+5. **Evaluation**:
+   - Compare estimated positions with ground truth
    - Calculate error metrics
    - Visualize results
 
@@ -180,13 +252,27 @@ This command:
 - Interpolates ground truth positions
 - Generates visualizations
 
+### Position Tracking
+
+```bash
+python main.py --fusion lstm --position_tracking --model_type cnn_lstm --visualize
+```
+
+This command:
+- Processes the sensor data using LSTM fusion
+- Applies CNN-LSTM position tracking
+- Generates visualizations for both processes
+
 ### Benchmarking
 
 ```bash
-python main.py --benchmark --visualize
+python main.py --benchmark --benchmark_position --visualize
 ```
 
-This command runs all implemented fusion methods and compares their performance.
+This command:
+- Runs all implemented fusion methods and compares their performance
+- Benchmarks different position tracking models
+- Generates comparison visualizations
 
 ## Command Line Arguments
 
@@ -198,24 +284,31 @@ This command runs all implemented fusion methods and compares their performance.
 - `--interpolate`: Interpolate ground truth positions
 - `--fusion`: Fusion method to use (ekf, ukf, lstm, adaptive, context)
 - `--benchmark`: Run benchmark comparison of all fusion methods
+- `--position_tracking`: Apply deep learning-based position tracking
+- `--model_type`: Type of model for position tracking (lstm, cnn_lstm, bidirectional)
+- `--seq_length`: Sequence length for position tracking models
+- `--epochs`: Number of training epochs for position tracking
+- `--batch_size`: Batch size for training position tracking models
+- `--benchmark_position`: Run benchmark comparison of position tracking models
 
 ## Results and Performance
 
 The system generates various outputs:
 
 - **Fusion Results**: CSV files containing fused heading data
-- **Visualizations**: PNG files showing comparisons between different sensors and fusion methods
-- **Benchmark Reports**: Comparison of different fusion methods using various metrics
+- **Position Tracking Results**: CSV files with predicted positions
+- **Visualizations**: PNG files showing comparisons between different sensors, fusion methods, and position predictions
+- **Benchmark Reports**: Comparison of different fusion and position tracking methods using various metrics
 
 ## Future Development
 
 Future phases will focus on:
 
-- Advanced position tracking using deep learning
 - Quasi-static detection optimization
-- Unified pipeline for real-time heading correction
+- Unified pipeline for real-time navigation
 - Deployment framework for mobile devices
+- Integration with mapping systems
 
 ## Conclusion
 
-This indoor navigation system demonstrates the power of combining traditional signal processing techniques with modern AI/ML approaches. By fusing data from multiple sensors and adapting to different environmental conditions, the system provides robust heading estimation for indoor navigation applications.
+This indoor navigation system demonstrates the power of combining traditional signal processing techniques with modern AI/ML approaches. By fusing data from multiple sensors and applying deep learning for position tracking, the system provides robust navigation capabilities for indoor environments where GPS is unavailable.

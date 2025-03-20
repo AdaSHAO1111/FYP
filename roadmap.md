@@ -22,8 +22,8 @@ This roadmap outlines the development plan for implementing AI/ML algorithms to 
 ## Phase 3: Advanced Position Tracking and Navigation
 
 - [ ] Develop deep learning approaches for position prediction
-   - [ ] Implement LSTM-based dead reckoning algorithms
-   - [ ] Create a neural network for step-length estimation
+   - [x] Implement LSTM-based dead reckoning algorithms
+   - [x] Create a neural network for step-length estimation
    - [ ] Design a system for floor detection and vertical movement tracking
 - [ ] Create a weighted multi-model ensemble for robust positioning
 - [ ] Implement real-time error correction based on quasi-static detection

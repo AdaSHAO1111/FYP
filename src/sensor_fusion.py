@@ -837,7 +837,7 @@ class SensorFusion:
         )
         
         # Save the model
-        model.save(os.path.join(self.output_dir, 'models', 'lstm_fusion_model.h5'))
+        model.save(os.path.join(self.output_dir, 'models', 'lstm_fusion_model.keras'))
         
         # Predict on all data
         # First, create sequences for all data
@@ -1319,8 +1319,7 @@ class SensorFusion:
                 elif not mag_field_stable or compass_variance > 50:
                     # High magnetic variance indicates unstable environment
                     environment_type = "unstable"
-                else:
-                    # Moderate variance
+                else:  # moderate or unknown
                     environment_type = "moderate"
             
             # --- Adjust filter parameters based on context ---

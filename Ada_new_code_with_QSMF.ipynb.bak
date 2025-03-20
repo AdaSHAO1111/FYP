@@ -201,7 +201,7 @@
        "    </tr>\n",
        "  </tbody>\n",
        "</table>\n",
-       "<p>77946 rows \u00d7 10 columns</p>\n",
+       "<p>77946 rows × 10 columns</p>\n",
        "</div>"
       ],
       "text/plain": [
@@ -241,12 +241,12 @@
    ],
    "source": [
     "# File path\n",
-    "# file_path = \"data/floor_9_fast_2.txt\"\n",
-    "# file_path = \"data/floor_9_fast_1.txt\"\n",
-    "# file_path = \"data/data_floor_6_loop_2_fast_gyro.txt\"\n",
+    "# file_path = \"floor_9_fast_2.TXT\"\n",
+    "# file_path = \"floor_9_fast_1.TXT\"\n",
+    "# file_path = \"data_floor_6_loop_2_fast_gyro.TXT\"\n",
     "\n",
-    "# file_path = \"data/1740733652386_CompassGyroSumHeadingData.txt\" # works\n",
-    "file_path = \"data/1740735201447_CompassGyroSumHeadingData.txt\" # works\n",
+    "# file_path = \"1740733652386_CompassGyroSumHeadingData.TXT\" # works\n",
+    "file_path = \"1740735201447_CompassGyroSumHeadingData.TXT\" # works\n",
     "\n",
     "\n",
     "\n",
@@ -452,7 +452,7 @@
        "    </tr>\n",
        "  </tbody>\n",
        "</table>\n",
-       "<p>646 rows \u00d7 10 columns</p>\n",
+       "<p>646 rows × 10 columns</p>\n",
        "</div>"
       ],
       "text/plain": [
@@ -1813,7 +1813,7 @@
        "    </tr>\n",
        "  </tbody>\n",
        "</table>\n",
-       "<p>77946 rows \u00d7 10 columns</p>\n",
+       "<p>77946 rows × 10 columns</p>\n",
        "</div>"
       ],
       "text/plain": [
@@ -2284,7 +2284,7 @@
        "    </tr>\n",
        "  </tbody>\n",
        "</table>\n",
-       "<p>645 rows \u00d7 3 columns</p>\n",
+       "<p>645 rows × 3 columns</p>\n",
        "</div>"
       ],
       "text/plain": [
@@ -2412,8 +2412,8 @@
     "})\n",
     "\n",
     "# Load custom markers (replace with correct file paths if necessary)\n",
-    "start_img = mpimg.imread(\"data/start.png\")\n",
-    "end_img = mpimg.imread(\"data/enda.png\")\n",
+    "start_img = mpimg.imread(\"start.png\")\n",
+    "end_img = mpimg.imread(\"enda.png\")\n",
     "\n",
     "# Function to add image marker at specific coordinates\n",
     "def add_marker(ax, img, x, y, zoom=0.1):\n",
@@ -2632,7 +2632,7 @@
        "    </tr>\n",
        "  </tbody>\n",
        "</table>\n",
-       "<p>646 rows \u00d7 7 columns</p>\n",
+       "<p>646 rows × 7 columns</p>\n",
        "</div>"
       ],
       "text/plain": [
@@ -2924,7 +2924,7 @@
        "    </tr>\n",
        "  </tbody>\n",
        "</table>\n",
-       "<p>646 rows \u00d7 14 columns</p>\n",
+       "<p>646 rows × 14 columns</p>\n",
        "</div>"
       ],
       "text/plain": [
