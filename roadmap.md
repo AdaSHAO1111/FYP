@@ -31,12 +31,12 @@ This roadmap outlines the development plan for implementing AI/ML algorithms to 
 
 ## Phase 4: Adaptive Quasi-Static Detection
 
-- [ ] Develop an ML algorithm to optimize quasi-static detection parameters
-   - [ ] Implement a genetic algorithm for parameter optimization
-   - [ ] Use reinforcement learning to adapt parameters in real-time
-   - [ ] Create a CNN-based model for direct quasi-static state classification
-- [ ] Implement a system to handle different quasi-static detection scenarios
-- [ ] Create metrics to evaluate quasi-static detection performance
+- [x] Develop an ML algorithm to optimize quasi-static detection parameters
+   - [x] Implement a genetic algorithm for parameter optimization
+   - [x] Use reinforcement learning to adapt parameters in real-time
+   - [x] Create a CNN-based model for direct quasi-static state classification
+- [x] Implement a system to handle different quasi-static detection scenarios
+- [x] Create metrics to evaluate quasi-static detection performance
 - [ ] Develop a federated learning approach for collaborative model training
 
 ## Phase 5: System Integration and Deployment

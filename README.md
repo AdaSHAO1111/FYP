@@ -10,9 +10,9 @@ The system is developed in a phased approach:
 
 - **Phase 1**: Data Preprocessing and Classification
 - **Phase 2**: Sensor Fusion and Improved Heading Estimation
-- **Phase 3**: Advanced Position Tracking and Navigation (Current Phase)
-- **Phase 4**: Adaptive Quasi-Static Detection (Future)
-- **Phase 5**: System Integration and Deployment (Future)
+- **Phase 3**: Advanced Position Tracking and Navigation
+- **Phase 4**: Adaptive Quasi-Static Detection
+- **Phase 5**: System Integration and Deployment (Current Phase)
 
 ## System Architecture
 
@@ -35,6 +35,16 @@ Indoor Navigation System
 │   ├── LSTM Models
 │   ├── CNN-LSTM Models
 │   └── Bidirectional LSTM Models
+├── Quasi-Static Detection
+│   ├── Base Detector
+│   ├── Genetic Algorithm Optimization
+│   ├── Reinforcement Learning Adaptation
+│   └── CNN-Based Classification
+├── System Integration
+│   ├── Context-Aware Algorithm Selection
+│   ├── Unified Navigation Pipeline
+│   ├── Real-time Processing
+│   └── Performance Monitoring
 ├── Evaluation
 │   ├── Benchmark System
 │   └── Performance Metrics
@@ -208,6 +218,84 @@ Kalman filtering is a recursive algorithm that uses a series of measurements ove
 
 Note: The remaining Phase 3 components (weighted multi-model ensemble, real-time error correction, and transfer learning) are planned for future implementation.
 
+### Phase 4: Adaptive Quasi-Static Detection
+
+1. **Base Quasi-Static Detector**:
+   - Implementation in `adaptive_quasi_static_detection.py`
+   - Uses a sliding window approach to identify periods of low heading variance
+   - Two key parameters control the detection sensitivity:
+     - **Stability Threshold**: The maximum variance allowed for quasi-static classification
+     - **Window Size**: The number of heading samples to consider when calculating variance
+
+2. **Genetic Algorithm Optimization**:
+   - Implementation in `adaptive_quasi_static_detection.py`
+   - Uses a genetic algorithm approach to evolve parameter sets
+   - Fitness function based on:
+     - Number of detected intervals (rewards ~10 intervals)
+     - Low variance within detected intervals
+     - Accuracy of compass heading vs. ground truth during intervals
+
+3. **Reinforcement Learning Approach**:
+   - Implementation in `adaptive_quasi_static_detection.py`
+   - Uses Q-learning to adapt parameters in real-time
+   - State space: current variance and recent interval count
+   - Action space: adjustments to stability threshold and window size
+   - Rewards based on variance reduction and heading accuracy
+
+4. **CNN-Based Classification**:
+   - Implementation in `cnn_quasi_static_classifier.py`
+   - Directly learns to classify quasi-static states from sensor data
+   - Uses 1D convolutional layers to extract temporal patterns
+   - Fuses multiple sensor inputs:
+     - Compass data (heading, magnitude)
+     - Gyroscope data (accumulated rotation)
+     - Contextual features (step count, floor)
+
+### Phase 5: System Integration and Deployment
+
+1. **Integrated Navigation System** (Phase 5):
+   - Implementation in `integrated_navigation_system.py`
+   - Creates a unified pipeline that combines all previous components into a cohesive system
+   - Uses context-aware algorithm selection to choose the best method for each situation
+   - Provides real-time heading correction through adaptive switching between methods
+   - Implements smart calibration processes using genetic algorithms from Phase 4
+   - Features comprehensive performance monitoring and visualization tools
+
+2. **Context-Aware Navigation** (Phase 5):
+   - Implementation in `integrated_navigation_system.py` (NavigationContext class)
+   - Tracks contextual factors such as:
+     - Movement state (moving, quasi-static)
+     - Magnetic disturbance levels
+     - Position and heading confidence
+     - Device orientation
+     - Step frequency
+   - Makes intelligent decisions about which algorithms to use based on context
+   - Dynamically adjusts weights for sensor fusion based on environmental conditions
+   - Prioritizes compass data during quasi-static periods and gyro during magnetic disturbances
+
+3. **Hybrid Model Switching** (Phase 5):
+   - Automatically selects between multiple heading estimation models:
+     - Compass calibration during quasi-static periods
+     - Gyro-only during high magnetic disturbance
+     - Adaptive fusion during normal operation
+     - CNN-LSTM for complex scenarios
+   - Calculates confidence metrics for each algorithm in real-time
+   - Provides seamless transitions between methods to maintain accuracy
+   - Evaluates and logs the performance of each method for continued improvement
+
+4. **Efficient Deployment Framework** (Phase 5):
+   - Configurable system parameters through JSON-based configuration
+   - Battery optimization options for mobile deployment
+   - Real-time processing with low computational overhead
+   - Performance logging and diagnostics
+   - Error tracking and visualization
+
+5. **Data Collection and Model Update Mechanism** (Phase 5):
+   - System calibration using genetic algorithms to optimize parameters
+   - Ability to save and reload optimized parameters
+   - Framework for collecting performance metrics during operation
+   - Visualization tools for analyzing system performance
+
 ## Workflow
 
 The system follows this workflow:
@@ -263,6 +351,19 @@ This command:
 - Applies CNN-LSTM position tracking
 - Generates visualizations for both processes
 
+### Integrated Navigation System (Phase 5)
+
+```bash
+python integrated_navigation_system.py --data_file data/1740735201447_CompassGyroSumHeadingData.TXT --calibrate --visualize --save_results
+```
+
+This command:
+- Initializes the integrated navigation system
+- Loads and processes the specified data file
+- Calibrates the system using genetic algorithm optimization
+- Processes the data stream with adaptive algorithm selection
+- Generates visualizations and saves results
+
 ### Benchmarking
 
 ```bash
@@ -302,13 +403,77 @@ The system generates various outputs:
 
 ## Future Development
 
-Future phases will focus on:
+Future work will focus on:
 
-- Quasi-static detection optimization
-- Unified pipeline for real-time navigation
-- Deployment framework for mobile devices
-- Integration with mapping systems
+- Federated learning for collaborative model training across devices
+- Transfer learning to adapt models to new environments
+- Edge optimization for resource-constrained deployments
+- Integration with mapping systems for enhanced navigation
 
 ## Conclusion
 
-This indoor navigation system demonstrates the power of combining traditional signal processing techniques with modern AI/ML approaches. By fusing data from multiple sensors and applying deep learning for position tracking, the system provides robust navigation capabilities for indoor environments where GPS is unavailable.
+This indoor navigation system demonstrates the power of combining traditional signal processing techniques with modern AI/ML approaches. By integrating multiple algorithms and using context-aware selection, the system provides robust navigation capabilities for indoor environments where GPS is unavailable. The adaptive quasi-static detection and hybrid model switching enable the system to optimize heading estimation under varying conditions, resulting in improved positioning accuracy and reliability.
+
+## Dataset Comparison
+
+The system includes a comprehensive dataset comparison framework for evaluating the performance of different quasi-static detection methods across multiple datasets.
+
+### Comparison Framework
+
+The comparison framework automatically:
+- Processes multiple datasets with different detection methods
+- Measures heading accuracy, processing efficiency, and other metrics
+- Generates visualizations and detailed reports
+- Identifies optimal parameters for each dataset
+
+### Running Dataset Comparisons
+
+```bash
+python compare_datasets.py --calibrate --visualize --save_results
+```
+
+This command:
+- Discovers and processes all datasets in the `data` directory
+- Applies both genetic algorithm optimization and basic detection methods
+- Performs calibration for the genetic algorithm method
+- Generates visualizations and saves detailed results
+- Creates a comprehensive HTML comparison report
+
+### Command Line Arguments
+
+- `--data_dir`: Directory containing data files (default: "data")
+- `--output_dir`: Directory to save output files (default: "output/comparison")
+- `--calibrate`: Run system calibration for each dataset
+- `--visualize`: Generate visualizations for each dataset
+- `--save_results`: Save detailed results for each dataset
+
+### Comparison Results
+
+The comparison generates:
+- **Comparison CSV**: Raw data table with all metrics for each dataset and method
+- **Heading Error Charts**: Bar charts comparing average and median heading errors
+- **Position Error Charts**: Bar charts comparing average and median position errors
+- **Processing Metrics Charts**: Bar charts showing processing times and quasi-static interval counts
+- **HTML Report**: A comprehensive report with tables, charts, and analysis
+
+### Key Metrics Compared
+
+- **Heading Accuracy**: Average and median heading errors (degrees)
+- **Position Accuracy**: Average and median position errors (meters)
+- **Processing Efficiency**: Time required to process each dataset (seconds)
+- **Quasi-Static Detection**: Number of intervals detected in each dataset
+- **Optimal Parameters**: The best stability threshold and window size for each dataset
+
+### Insights
+
+The comparison reveals:
+- Different datasets require different optimal parameters for best performance
+- Genetic algorithm optimization provides varying benefits depending on the dataset
+- There's a trade-off between processing time and accuracy
+- Some datasets yield more reliable heading estimations than others
+
+This comparison framework is particularly useful for:
+- Selecting the best datasets for training robust models
+- Understanding how the system performs in different environments
+- Fine-tuning parameters for specific navigation scenarios
+- Evaluating the cost-benefit of optimization methods

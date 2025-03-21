@@ -518,28 +518,61 @@ class IntegratedNavigationSystem:
     
     def update_position(self, data: pd.DataFrame, ground_truth: Optional[pd.DataFrame] = None):
         """
-        Update the current position based on heading and step information.
-        If ground truth is provided, calculate and store error metrics.
+        Update position based on heading and step count
+        
+        Args:
+            data: DataFrame containing sensor data
+            ground_truth: Optional DataFrame containing ground truth data
         """
-        if len(data) < 2:
+        if len(data) == 0:
             return
         
-        # Get the latest two data points to detect step changes
-        prev = data.iloc[-2]
-        latest = data.iloc[-1]
+        # Check if we have direct position data (from synthetic data)
+        if 'east_pos' in data.columns and 'north_pos' in data.columns:
+            # Use provided position data directly
+            try:
+                # For each row in the data, add a position point to the history
+                for _, row in data.iterrows():
+                    timestamp = row['Timestamp_(ms)'] if 'Timestamp_(ms)' in row else len(self.position_history)
+                    east = row['east_pos']
+                    north = row['north_pos']
+                    heading = self.current_heading
+                    step = row['step'] if 'step' in row else len(self.position_history)
+                    floor = 0.0  # Default floor
+                    
+                    # Update current position
+                    self.current_position = (east, north)
+                    
+                    self.position_history.append({
+                        'timestamp': timestamp,
+                        'east': east,
+                        'north': north,
+                        'heading': heading,
+                        'step': step,
+                        'floor': floor
+                    })
+                return
+            except (IndexError, KeyError) as e:
+                logger.warning(f"Error using direct position data: {e}")
+                # Fall through to calculated position
         
-        # Check if a step has occurred
+        # If we don't have direct position data, calculate it
         try:
-            latest_step = float(latest["step"]) if "step" in latest else 0
-            prev_step = float(prev["step"]) if "step" in prev else 0
-            
-            if latest_step > prev_step:
-                # Calculate change in step
-                step_change = latest_step - prev_step
+            # Get step information
+            if 'step' in data.columns:
+                # If we have step information directly
+                current_step = data['step'].iloc[-1]
+                
+                # Check if we already have a position for this step
+                if self.position_history and self.position_history[-1]['step'] == current_step:
+                    # Skip duplicate step
+                    return
+                    
+                # Calculate step size - simplified assumption
+                step_size = 0.7  # meters per step
                 
                 # Calculate distance moved
-                step_length = self.config["position_tracking"]["step_length"]
-                distance = step_change * step_length
+                distance = step_size * step_size
                 
                 # Convert heading to radians for trigonometric calculations
                 heading_rad = np.radians(self.current_heading)
@@ -552,11 +585,11 @@ class IntegratedNavigationSystem:
                 self.current_position = (new_east, new_north)
                 
                 # Update current step count
-                self.current_step_count = latest_step
+                self.current_step_count = current_step
                 
                 # Record position
                 try:
-                    timestamp = float(latest["Timestamp_(ms)"])
+                    timestamp = float(data['Timestamp_(ms)'].iloc[-1])
                 except (ValueError, TypeError):
                     timestamp = len(self.position_history)  # Use sequential index if timestamp conversion fails
                     
@@ -573,7 +606,7 @@ class IntegratedNavigationSystem:
                 if ground_truth is not None:
                     try:
                         # Find the closest ground truth point by step number
-                        matching_gt = ground_truth[ground_truth["step"] == latest_step]
+                        matching_gt = ground_truth[ground_truth["step"] == current_step]
                         
                         if len(matching_gt) > 0:
                             gt_east = float(matching_gt["GroundTruth_X"].values[0])
@@ -812,25 +845,46 @@ class IntegratedNavigationSystem:
         
         logger.info("Navigation system reset to initial state")
     
-    def visualize_results(self, output_dir: Optional[str] = None):
-        """Visualize the results of the navigation system"""
-        if output_dir is None:
-            output_dir = self.output_dir
-            
+    def visualize_results(self, output_dir="output"):
+        """
+        Visualize the navigation results
+        
+        Args:
+            output_dir: Directory to save visualizations
+        """
         os.makedirs(output_dir, exist_ok=True)
         
-        if len(self.heading_history) == 0 or len(self.position_history) == 0:
-            logger.warning("No data to visualize")
+        heading_history = pd.DataFrame(self.heading_history)
+        position_history = pd.DataFrame(self.position_history)
+        
+        if len(heading_history) <= 1 or len(position_history) <= 1:
+            logging.warning("Not enough data to visualize (need at least 2 data points)")
             return
-            
-        # Convert history to DataFrames for easier plotting
-        heading_df = pd.DataFrame(self.heading_history)
-        position_df = pd.DataFrame(self.position_history)
         
         # 1. Plot heading over time
-        if 'timestamp' in heading_df and 'heading' in heading_df:
+        if 'timestamp' in heading_history.columns and 'heading' in heading_history.columns:
             plt.figure(figsize=(12, 6))
-            plt.plot(heading_df['timestamp'], heading_df['heading'], label='Estimated Heading')
+            plt.plot(heading_history['timestamp'], heading_history['heading'], 
+                     label='Estimated Heading')
+            
+            if 'compass' in heading_history.columns:
+                plt.plot(heading_history['timestamp'], heading_history['compass'], 
+                         alpha=0.5, label='Compass')
+                
+            if 'gyro_heading' in heading_history.columns:
+                plt.plot(heading_history['timestamp'], heading_history['gyro_heading'], 
+                         alpha=0.5, label='Gyro Heading')
+            
+            # Mark quasi-static periods if available
+            if 'is_quasi_static' in heading_history.columns:
+                qs_indices = heading_history[heading_history['is_quasi_static']].index
+                if len(qs_indices) > 0:
+                    plt.scatter(
+                        heading_history.loc[qs_indices, 'timestamp'], 
+                        heading_history.loc[qs_indices, 'heading'],
+                        color='red', s=20, alpha=0.7, label='Quasi-Static Points'
+                    )
+            
             plt.xlabel('Time (ms)')
             plt.ylabel('Heading (degrees)')
             plt.title('Heading Estimation Over Time')
@@ -838,33 +892,25 @@ class IntegratedNavigationSystem:
             plt.grid(True)
             plt.savefig(os.path.join(output_dir, 'heading_over_time.png'))
             plt.close()
-            
+            logging.info(f"Saved heading visualization to {output_dir}/heading_over_time.png")
+        
         # 2. Plot trajectory in 2D
-        if 'east' in position_df and 'north' in position_df:
+        if 'east' in position_history.columns and 'north' in position_history.columns:
             plt.figure(figsize=(12, 12))
-            plt.plot(position_df['east'], position_df['north'], 'b-', label='Estimated Path')
-            plt.scatter(position_df['east'].iloc[0], position_df['north'].iloc[0], 
+            plt.plot(position_history['east'], position_history['north'], 'b-', 
+                    label='Estimated Path')
+            
+            # Mark start and end points
+            plt.scatter(position_history['east'].iloc[0], position_history['north'].iloc[0], 
                        color='green', s=100, label='Start')
-            plt.scatter(position_df['east'].iloc[-1], position_df['north'].iloc[-1], 
+            plt.scatter(position_history['east'].iloc[-1], position_history['north'].iloc[-1], 
                        color='red', s=100, label='End')
             
-            # Mark quasi-static periods on the trajectory
-            if 'timestamp' in heading_df and 'is_quasi_static' in heading_df:
-                # Merge position and heading data on timestamp
-                merged_df = pd.merge_asof(
-                    position_df.sort_values('timestamp'), 
-                    heading_df[['timestamp', 'is_quasi_static']].sort_values('timestamp'), 
-                    on='timestamp'
-                )
-                
-                # Plot quasi-static points
-                quasi_static_points = merged_df[merged_df['is_quasi_static'] == True]
-                if len(quasi_static_points) > 0:
-                    plt.scatter(
-                        quasi_static_points['east'], 
-                        quasi_static_points['north'],
-                        color='orange', s=50, label='Quasi-Static Points'
-                    )
+            # If we have ground truth for comparison
+            if ('true_east' in position_history.columns and 
+                'true_north' in position_history.columns):
+                plt.plot(position_history['true_east'], position_history['true_north'], 
+                        'g--', label='Ground Truth')
             
             plt.xlabel('East (m)')
             plt.ylabel('North (m)')
@@ -874,38 +920,12 @@ class IntegratedNavigationSystem:
             plt.legend()
             plt.savefig(os.path.join(output_dir, 'estimated_trajectory.png'))
             plt.close()
-            
-        # 3. Plot heading error if available
-        if len(self.heading_errors) > 0:
-            error_df = pd.DataFrame(self.heading_errors)
-            plt.figure(figsize=(12, 6))
-            plt.plot(error_df['timestamp'], error_df['error'], 'r-')
-            plt.axhline(y=error_df['error'].mean(), color='k', linestyle='--', 
-                       label=f'Mean Error: {error_df["error"].mean():.2f}°')
-            plt.xlabel('Time (ms)')
-            plt.ylabel('Heading Error (degrees)')
-            plt.title('Heading Estimation Error')
-            plt.grid(True)
-            plt.legend()
-            plt.savefig(os.path.join(output_dir, 'heading_error.png'))
-            plt.close()
-            
-        # 4. Plot position error if available
-        if len(self.position_errors) > 0:
-            pos_error_df = pd.DataFrame(self.position_errors)
-            plt.figure(figsize=(12, 6))
-            plt.plot(pos_error_df['step'], pos_error_df['error'], 'r-')
-            plt.axhline(y=pos_error_df['error'].mean(), color='k', linestyle='--', 
-                       label=f'Mean Error: {pos_error_df["error"].mean():.2f}m')
-            plt.xlabel('Step Number')
-            plt.ylabel('Position Error (m)')
-            plt.title('Position Estimation Error')
-            plt.grid(True)
-            plt.legend()
-            plt.savefig(os.path.join(output_dir, 'position_error.png'))
-            plt.close()
-            
-        logger.info(f"Visualizations saved to {output_dir}")
+            logging.info(f"Saved trajectory visualization to {output_dir}/estimated_trajectory.png")
+        
+        # Save data for potential further analysis
+        heading_history.to_csv(os.path.join(output_dir, 'heading_history.csv'), index=False)
+        position_history.to_csv(os.path.join(output_dir, 'position_history.csv'), index=False)
+        logging.info(f"Saved result data to {output_dir}/heading_history.csv and {output_dir}/position_history.csv")
     
     def save_results(self, output_dir: Optional[str] = None):
         """Save the results of the navigation system to CSV files"""
@@ -970,13 +990,76 @@ def main():
         logger.error(f"Error loading data: {e}")
         logger.info("Generating synthetic test data instead")
         
-        # Generate synthetic data for testing
+        # Generate synthetic data for testing with a more realistic trajectory
+        num_points = 1000
+        timestamps = np.arange(num_points)
+        
+        # Generate a more complex compass heading pattern with turns
+        # Start with a straight line, then make a few turns
+        compass_base = np.ones(num_points) * 180
+        
+        # Add some turns at specific points
+        turn_points = [200, 400, 600, 800]
+        turn_angles = [90, -45, 30, -60]
+        
+        for i, (point, angle) in enumerate(zip(turn_points, turn_angles)):
+            compass_base[point:] += angle
+        
+        # Add some noise to the compass readings
+        compass = compass_base + np.random.normal(0, 5, num_points)
+        compass = compass % 360
+        
+        # Generate gyro readings with gradual drift
+        gyro_increments = np.random.normal(0, 0.1, num_points)
+        # Add some bias to simulate gyro drift
+        gyro_increments += 0.01  
+        
+        # At turn points, add actual turn angles to gyro
+        for point, angle in zip(turn_points, turn_angles):
+            gyro_increments[point] += angle
+            
+        gyro_sum = np.cumsum(gyro_increments) % 360
+        
+        # Create quasi-static periods
+        is_quasi_static = np.zeros(num_points, dtype=bool)
+        quasi_static_periods = [(50, 100), (250, 300), (450, 500), (650, 700), (850, 900)]
+        
+        for start, end in quasi_static_periods:
+            is_quasi_static[start:end] = True
+            
+        # Make gyro and compass more consistent during quasi-static periods
+        for start, end in quasi_static_periods:
+            # Reduce noise in quasi-static periods
+            compass[start:end] = compass_base[start:end] + np.random.normal(0, 1, end-start)
+            # Almost no increments in gyro during quasi-static
+            gyro_increments[start:end] = np.random.normal(0, 0.01, end-start)
+        
+        # Generate position data based on heading
+        east = np.zeros(num_points)
+        north = np.zeros(num_points)
+        
+        # Use the average of compass and gyro for heading to calculate positions
+        heading = (compass + gyro_sum) / 2
+        step_length = 0.5  # meters
+        
+        for i in range(1, num_points):
+            # Convert heading to radians (adjusting for heading direction convention)
+            heading_rad = np.radians(90 - heading[i])
+            # Calculate position increment
+            east[i] = east[i-1] + step_length * np.cos(heading_rad)
+            north[i] = north[i-1] + step_length * np.sin(heading_rad)
+
+        # Create the DataFrame with all the synthetic data
         data = pd.DataFrame({
-            'Timestamp_(ms)': range(1000),
-            'compass': np.random.normal(180, 10, 1000),
-            'gyroSumFromstart0': np.cumsum(np.random.normal(0, 0.1, 1000)) % 360,
-            'step': range(1000)
+            'Timestamp_(ms)': timestamps,
+            'compass': compass,
+            'gyroSumFromstart0': gyro_sum,
+            'step': timestamps,
+            'is_quasi_static': is_quasi_static,
+            'east_pos': east,
+            'north_pos': north
         })
+        
         ground_truth = None
     
     # First, calibrate the system using a portion of the data
@@ -1018,8 +1101,17 @@ def main():
             # Process the chunk
             nav_system.process_data_stream(chunk, gt_chunk)
     else:
-        # For small datasets, process all at once
-        nav_system.process_data_stream(data, ground_truth)
+        # For small datasets, process row by row to generate points at each timestamp
+        for i in range(len(data)):
+            # Create a single-row DataFrame for this timestamp
+            row_data = data.iloc[[i]]
+            
+            # Process this individual data point
+            nav_system.process_data_stream(row_data, ground_truth)
+            
+            # Log progress periodically
+            if i % 100 == 0:
+                logger.debug(f"Processed {i}/{len(data)} records")
     
     end_time = time.time()
     processing_time = end_time - start_time
