@@ -1,0 +1,7 @@
+Sensor,Method,Average Error (m)
+Compass,Traditional,16.756592751450317
+Compass,LSTM,16.798661644350243
+Compass,Ensemble,16.757390023308343
+Gyro,Traditional,16.756932798208226
+Gyro,LSTM,17.644699891048358
+Gyro,Ensemble,16.772184468678383
