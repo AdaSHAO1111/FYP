@@ -1,0 +1,9 @@
+threshold_step_difference,stability_threshold,window_size,num_intervals
+0.3,50,50,0
+0.3,100,50,0
+0.3,150,50,0
+0.3,50,30,0
+0.3,100,30,3
+0.5,200,50,0
+0.5,250,50,1
+0.5,300,50,2

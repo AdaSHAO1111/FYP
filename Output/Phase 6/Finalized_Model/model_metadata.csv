@@ -1,0 +1,2 @@
+Mean_Error,Median_Error,Max_Error,Improvement_over_Compass_%,Improvement_over_Gyro_%,Model_Architecture,Sequence_Length,Input_Features,Training_Date
+3.554273752572714,3.17137027013896,6.26917286385947,43.37429962783733,81.09796904777231,Bidirectional LSTM (64+32 units),10,"Compass_sin, Compass_cos, Gyro_sin, Gyro_cos",2025-04-19

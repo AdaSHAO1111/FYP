@@ -1,0 +1,5 @@
+{
+    "threshold_step_difference": 0.3,
+    "stability_threshold": 100,
+    "window_size": 30
+}

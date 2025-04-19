@@ -1,0 +1,3 @@
+Window Size: 15
+Number of QS Intervals: 5
+Data Points in QS Intervals: 210 (67.74%)

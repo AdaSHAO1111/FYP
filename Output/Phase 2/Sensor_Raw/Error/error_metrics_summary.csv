@@ -1,0 +1,3 @@
+Method,Average Error (m),Min Error (m),Max Error (m),Standard Deviation (m),Improvement (%)
+Gyro,5.45,0.00,7.94,2.23,70.2
+Compass,18.27,0.00,33.61,8.49,0.0 

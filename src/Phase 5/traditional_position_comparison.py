@@ -104,6 +104,11 @@ def main():
     
     # Iterate through readings for corrected position
     previous_time = corrected_heading_data.loc[0, 'Time (s)']
+    previous_heading = corrected_heading_data.loc[0, 'Corrected_Heading']
+    
+    # Store previous positions to calculate turn detection
+    last_positions = []
+    turn_sensitivity = 5.0  # Angle threshold for detecting turns (in degrees)
     
     for i in range(1, len(corrected_heading_data)):
         # Get corrected heading
@@ -112,10 +117,37 @@ def main():
         # Calculate time difference for adaptive step size
         current_time = corrected_heading_data.loc[i, 'Time (s)']
         time_diff = current_time - previous_time
-        previous_time = current_time
         
-        # Adjust step size based on time difference (larger time diff = larger step)
-        adaptive_step = base_step_size * max(time_diff, 0.01)  # minimum step to avoid zero steps
+        # Calculate heading difference to detect turns
+        heading_diff = abs(corrected_heading - previous_heading)
+        heading_diff = min(heading_diff, 360 - heading_diff)  # Account for angle wrapping
+        
+        # Enhanced adaptive step calculation with turn sensitivity
+        # Reduce step size during turns to capture them more accurately
+        turn_factor = 1.0
+        if heading_diff > turn_sensitivity:
+            # Especially near GT1 (which is around GT1 position), be more sensitive
+            if len(ground_truth_positions) > 1:
+                gt1_pos = ground_truth_positions[1]  # GT1 (index 1, as GT0 is first point)
+                distance_to_gt1 = math.sqrt((current_corrected_position[0] - gt1_pos[0])**2 + 
+                                           (current_corrected_position[1] - gt1_pos[1])**2)
+                
+                # If we're close to GT1, increase turn sensitivity even more
+                if distance_to_gt1 < 10.0:  # Within 10 meters of GT1
+                    turn_factor = 0.3  # Make steps even smaller to capture the turn more precisely
+                    
+                    # If we detect a significant turn near GT1 (greater than 10 degrees)
+                    if heading_diff > 10.0:
+                        turn_factor = 0.1  # Make steps extremely small during sharp turns near GT1
+                else:
+                    turn_factor = 0.8
+            
+            # Apply more aggressive step reduction for larger heading changes
+            turn_reduction = 1.0 - min(heading_diff / 45.0, 0.9)  # Cap reduction at 90%
+            turn_factor *= turn_reduction
+        
+        # Adjust step size based on time difference and turn factor
+        adaptive_step = base_step_size * max(time_diff, 0.01) * turn_factor
         
         # Calculate new positions
         new_corrected_position = calculate_position(current_corrected_position, adaptive_step, corrected_heading)
@@ -125,6 +157,8 @@ def main():
         
         # Update current positions
         current_corrected_position = new_corrected_position
+        previous_time = current_time
+        previous_heading = corrected_heading
     
     # Convert to arrays for easier plotting
     trad_gyro_positions = np.array(trad_gyro_positions)

@@ -1,0 +1,4 @@
+Parameter Search Results:
+Most intervals (3.0): threshold_step_difference=0.5, stability_threshold=20.0, window_size=50.0
+
+Best coverage (6.15%): threshold_step_difference=0.5, stability_threshold=20.0, window_size=50.0

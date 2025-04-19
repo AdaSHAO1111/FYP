@@ -1,0 +1,36 @@
+Quasi-Static Interval Detection Analysis Report
+==================================================
+
+Parameters used:
+- Stability Threshold: 100 degrees²
+- Window Size: 30 samples
+- Step Difference Threshold: 0.3 steps
+
+Detected 3 intervals
+Coverage: 10.32% of data points
+
+Interval details:
+QS Interval 1:
+  Step Range: 23.5 - 26.5
+  Data Points: 7
+  Mean Compass Heading: 293.03°
+  Heading Standard Deviation: 4.19°
+  Mean True Heading: 246.56°
+  Absolute Difference: 46.47°
+
+QS Interval 2:
+  Step Range: 44.0 - 48.0
+  Data Points: 9
+  Mean Compass Heading: 337.63°
+  Heading Standard Deviation: 7.05°
+  Mean True Heading: 195.59°
+  Absolute Difference: 142.03°
+
+QS Interval 3:
+  Step Range: 87.0 - 94.5
+  Data Points: 16
+  Mean Compass Heading: 282.36°
+  Heading Standard Deviation: 6.98°
+  Mean True Heading: 43.00°
+  Absolute Difference: 239.36°
+

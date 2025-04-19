@@ -1,0 +1,46 @@
+QS Detection Parameter Adjustment Log - 2025-04-19 14:16:36
+================================================================================
+Initial parameters:
+- threshold_step_difference: 0.5
+- stability_threshold: 50
+- window_size: 50
+
+Initial detection result: 0 intervals detected
+
+Trying parameters: step_diff=0.3, stability=50, window=50
+  -> 0 intervals detected
+
+Trying parameters: step_diff=0.3, stability=100, window=50
+  -> 0 intervals detected
+
+Trying parameters: step_diff=0.3, stability=150, window=50
+  -> 0 intervals detected
+
+Trying parameters: step_diff=0.3, stability=50, window=30
+  -> 0 intervals detected
+
+Trying parameters: step_diff=0.3, stability=100, window=30
+  -> 3 intervals detected
+  Interval details:
+  - Interval #0: Steps 23.5-26.5, Mean Heading: 293.03°, Variance: 17.56
+  - Interval #1: Steps 44.0-48.0, Mean Heading: 337.63°, Variance: 49.73
+  - Interval #2: Steps 87.0-94.5, Mean Heading: 282.36°, Variance: 48.71
+
+Trying parameters: step_diff=0.5, stability=200, window=50
+  -> 0 intervals detected
+
+Trying parameters: step_diff=0.5, stability=250, window=50
+  -> 1 intervals detected
+  Interval details:
+  - Interval #0: Steps 92.0-99.0, Mean Heading: 280.71°, Variance: 20.68
+
+Trying parameters: step_diff=0.5, stability=300, window=50
+  -> 2 intervals detected
+  Interval details:
+  - Interval #0: Steps 16.0-22.5, Mean Heading: 294.54°, Variance: 145.85
+  - Interval #1: Steps 92.0-99.5, Mean Heading: 281.13°, Variance: 22.08
+
+================================================================================
+Selected best parameters: step_diff=0.3, stability=100, window=30
+Number of QS intervals: 3
+

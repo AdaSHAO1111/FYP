@@ -187,6 +187,14 @@ def calculate_positions(data, heading_column, step_length=0.66, initial_position
 gt_positions = calculate_gt_positions(df_gt)
 print(f"Ground Truth坐标点数量: {len(gt_positions)}")
 
+# 确保按照正确的顺序连接ground truth点
+# 按照df_gt中的顺序提取坐标，确保轨迹的连续性
+gt_positions_ordered = []
+for i in range(len(df_gt)):
+    x = df_gt['value_4'].iloc[i] - df_gt['value_4'].iloc[0]
+    y = df_gt['value_5'].iloc[i] - df_gt['value_5'].iloc[0]
+    gt_positions_ordered.append((x, y))
+
 # 使用传统方法计算位置
 print("计算传统方法的位置...")
 positions_compass_trad = calculate_positions(compass_data, 'compass', step_length, initial_position)
@@ -195,8 +203,8 @@ print(f"Compass轨迹点数量: {len(positions_compass_trad)}")
 print(f"Gyro轨迹点数量: {len(positions_gyro_trad)}")
 
 # 提取坐标
-x_gt = [pos[0] for pos in gt_positions]
-y_gt = [pos[1] for pos in gt_positions]
+x_gt = [pos[0] for pos in gt_positions_ordered]  # 使用有序的ground truth点
+y_gt = [pos[1] for pos in gt_positions_ordered]  # 使用有序的ground truth点
 
 x_compass_trad = [pos[0] for pos in positions_compass_trad]
 y_compass_trad = [pos[1] for pos in positions_compass_trad]
@@ -208,7 +216,7 @@ y_gyro_trad = [pos[1] for pos in positions_gyro_trad]
 print("生成位置轨迹对比图...")
 
 # 设置绘图参数
-fontSizeAll = 8
+fontSizeAll = 12  # 增大字体大小以提高可读性
 plt.rcParams.update({
     'xtick.major.pad': '1',
     'ytick.major.pad': '1',
@@ -221,10 +229,10 @@ plt.rcParams.update({
 })
 
 # 使用传统方法计算的位置轨迹图
-fig1, ax1 = plt.subplots(figsize=(6, 6), dpi=300)
+fig1, ax1 = plt.subplots(figsize=(8, 8), dpi=300)  # 增大图像尺寸
 plt.subplots_adjust(left=0.12, bottom=0.1, right=0.95, top=0.92)
 
-# 绘制Ground Truth轨迹
+# 绘制Ground Truth轨迹 - 确保按照正确的顺序连接点
 plt.plot(x_gt, y_gt, color='blue', linestyle='-', linewidth=1.5, label='Ground Truth')
 
 # 绘制传统方法的罗盘轨迹
@@ -279,8 +287,8 @@ def calculate_position_error(positions, gt_positions):
 
 # 计算各方法的位置误差
 try:
-    compass_trad_avg_error, compass_trad_cum_error, compass_trad_errors = calculate_position_error(positions_compass_trad, gt_positions)
-    gyro_trad_avg_error, gyro_trad_cum_error, gyro_trad_errors = calculate_position_error(positions_gyro_trad, gt_positions)
+    compass_trad_avg_error, compass_trad_cum_error, compass_trad_errors = calculate_position_error(positions_compass_trad, gt_positions_ordered)
+    gyro_trad_avg_error, gyro_trad_cum_error, gyro_trad_errors = calculate_position_error(positions_gyro_trad, gt_positions_ordered)
 
     # 创建位置误差表格
     error_df = pd.DataFrame({

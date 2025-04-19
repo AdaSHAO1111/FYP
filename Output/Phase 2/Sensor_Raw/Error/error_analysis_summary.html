@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Positioning Error Analysis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        h1 {
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .gyro-row {
+            background-color: #d4e6f1;
+        }
+        .compass-row {
+            background-color: #f5d5d5;
+        }
+        .image-container {
+            margin: 20px 0;
+            text-align: center;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .conclusion {
+            background-color: #e8f5e9;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 5px solid #4caf50;
+            margin: 20px 0;
+        }
+        .key-point {
+            font-weight: bold;
+            color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <h1>Positioning Error Analysis Summary</h1>
+    
+    <h2>📊 Key Findings</h2>
+    <table>
+        <tr>
+            <th>Method</th>
+            <th>Average Error</th>
+            <th>Min Error</th>
+            <th>Max Error</th>
+            <th>Standard Deviation</th>
+        </tr>
+        <tr class="gyro-row">
+            <td><strong>📱 Gyro</strong></td>
+            <td>5.45 m</td>
+            <td>0.00 m</td>
+            <td>7.94 m</td>
+            <td>2.23 m</td>
+        </tr>
+        <tr class="compass-row">
+            <td><strong>🧭 Compass</strong></td>
+            <td>18.27 m</td>
+            <td>0.00 m</td>
+            <td>33.61 m</td>
+            <td>8.49 m</td>
+        </tr>
+    </table>
+    
+    <h2>📈 Visual Analysis</h2>
+    <p>Three visualizations were created to analyze the positioning errors:</p>
+    
+    <h3>1. Distance Error Plot</h3>
+    <div class="image-container">
+        <img src="distance_error_plot.png" alt="Distance Error Plot">
+    </div>
+    <p>This plot shows how positioning errors change as the user walks further. Key observations:</p>
+    <ul>
+        <li>Gyro errors (blue) are consistently lower than Compass errors (red)</li>
+        <li>Compass errors increase more rapidly with distance</li>
+        <li>Gyro errors stabilize around 6-7 meters even at longer distances</li>
+    </ul>
+    
+    <h3>2. Error Distribution (ECDF Plot)</h3>
+    <div class="image-container">
+        <img src="ecdf_plot.png" alt="ECDF Plot">
+    </div>
+    <p>The Empirical Cumulative Distribution Function (ECDF) shows:</p>
+    <ul>
+        <li>Gyro errors are more tightly distributed in the lower range</li>
+        <li>About 80% of Gyro errors are below 7.4 meters</li>
+        <li>Compass errors have a much wider distribution</li>
+        <li>Most Compass errors are above 9.8 meters</li>
+    </ul>
+    
+    <h3>3. Error Range Comparison (Box Plot)</h3>
+    <div class="image-container">
+        <img src="box_plot.png" alt="Box Plot">
+    </div>
+    <p>The box plot clearly demonstrates:</p>
+    <ul>
+        <li>Gyro has a much narrower error range</li>
+        <li>Compass errors are not only higher but more variable</li>
+        <li>The median (middle line) of Gyro errors (~5.9m) is much lower than Compass (~21.4m)</li>
+    </ul>
+    
+    <div class="conclusion">
+        <h2>💡 Conclusion</h2>
+        <p><strong>Gyroscope-based positioning significantly outperforms compass-based positioning:</strong></p>
+        <ul>
+            <li class="key-point">Gyro errors are 70% lower on average</li>
+            <li class="key-point">Gyro errors show less variability and more consistency</li>
+            <li class="key-point">Gyro positioning maintains better accuracy over longer distances</li>
+        </ul>
+        <p>This analysis confirms that gyroscope-based positioning is the more reliable method for indoor positioning in this scenario, particularly when walking longer distances.</p>
+    </div>
+</body>
+</html> 

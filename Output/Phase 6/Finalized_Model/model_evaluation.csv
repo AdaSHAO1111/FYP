@@ -1,0 +1,2 @@
+Mean Error (rad),Median Error (rad),Max Error (rad),Mean Error (deg),Median Error (deg),Max Error (deg),Training Time (s),Sequence Length,Test Loss
+0.3366414284286121,0.011392792131376783,1.5475790815933461,19.288133058214843,0.6527589059977434,88.6697498380308,12.383323907852173,10,0.336641401052475

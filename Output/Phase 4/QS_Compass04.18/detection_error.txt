@@ -1,0 +1,5 @@
+No quasi-static intervals were detected with the given parameters.
+Try adjusting the parameters to be less restrictive:
+- Increase the stability threshold
+- Decrease the window size
+- Decrease the step difference threshold
