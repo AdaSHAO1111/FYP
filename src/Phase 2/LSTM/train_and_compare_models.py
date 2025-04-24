@@ -8,8 +8,11 @@ import time
 from heading_prediction_model import HeadingPredictor
 
 # 设置输出目录
-output_dir = '/Users/shaoxinyi/Downloads/FYP2/Output/Phase 2'
+output_dir = '/Users/shaoxinyi/Downloads/FYP2/Output/1536data result/Phase 2/LSTM'
 os.makedirs(output_dir, exist_ok=True)
+
+# 控制是否重用已有模型（True表示重用，False表示重新训练）
+reuse_models = True  # 更改此标志以控制是否重用模型
 
 # 输入文件
 input_file = '/Users/shaoxinyi/Downloads/FYP2/Data_collected/1536_CompassGyroSumHeadingData.txt'
@@ -121,36 +124,61 @@ gyro_data['GyroStartByGroundTruth'] = (gyro_data['GyroStartByGroundTruth'] + 360
 
 print("数据预处理完成")
 
-# 训练机器学习模型
+# 初始化模型
 print("初始化深度学习模型...")
 heading_predictor = HeadingPredictor(window_size=20)  # 使用20个时间步作为窗口大小
 
-print("训练陀螺仪航向预测模型...")
-start_time = time.time()
-gyro_history = heading_predictor.train_gyro_model(
-    gyro_data, 
-    gyro_data['GroundTruthHeadingComputed'],
-    epochs=30,
-    batch_size=32,
-    validation_split=0.2
-)
-gyro_train_time = time.time() - start_time
-print(f"陀螺仪模型训练完成，用时 {gyro_train_time:.2f} 秒")
+# 检查是否存在已训练的模型并根据设置决定是重用还是重新训练
+gyro_model_path = os.path.join(output_dir, 'gyro_heading_lstm_model.keras')
+compass_model_path = os.path.join(output_dir, 'compass_heading_lstm_model.keras')
+models_exist = os.path.exists(gyro_model_path) and os.path.exists(compass_model_path)
 
-print("训练罗盘航向预测模型...")
-start_time = time.time()
-compass_history = heading_predictor.train_compass_model(
-    compass_data, 
-    compass_data['GroundTruthHeadingComputed'],
-    epochs=30,
-    batch_size=32,
-    validation_split=0.2
-)
-compass_train_time = time.time() - start_time
-print(f"罗盘模型训练完成，用时 {compass_train_time:.2f} 秒")
+if reuse_models and models_exist:
+    print("正在加载已有的模型...")
+    try:
+        heading_predictor.load_models(output_dir)
+        print("模型加载成功")
+    except Exception as e:
+        print(f"模型加载失败: {e}")
+        print("将重新训练模型")
+        reuse_models = False
+else:
+    if reuse_models:
+        print("未找到已有模型，将进行训练")
+    reuse_models = False
 
-# 保存模型
-heading_predictor.save_models(output_dir)
+# 如果需要训练新模型
+if not reuse_models:
+    print("训练陀螺仪航向预测模型...")
+    start_time = time.time()
+    gyro_history = heading_predictor.train_gyro_model(
+        gyro_data, 
+        gyro_data['GroundTruthHeadingComputed'],
+        epochs=30,
+        batch_size=32,
+        validation_split=0.2
+    )
+    gyro_train_time = time.time() - start_time
+    print(f"陀螺仪模型训练完成，用时 {gyro_train_time:.2f} 秒")
+
+    print("训练罗盘航向预测模型...")
+    start_time = time.time()
+    compass_history = heading_predictor.train_compass_model(
+        compass_data, 
+        compass_data['GroundTruthHeadingComputed'],
+        epochs=30,
+        batch_size=32,
+        validation_split=0.2
+    )
+    compass_train_time = time.time() - start_time
+    print(f"罗盘模型训练完成，用时 {compass_train_time:.2f} 秒")
+
+    # 保存模型
+    print("保存模型...")
+    heading_predictor.save_models(output_dir)
+    print(f"模型已保存到 {output_dir}")
+else:
+    print("使用已有模型，跳过训练阶段")
 
 # 使用模型进行预测
 print("使用深度学习模型预测航向...")
@@ -351,33 +379,34 @@ compass_plot_file = os.path.join(output_dir, 'compass_heading_methods_comparison
 plt.savefig(compass_plot_file, bbox_inches='tight')
 print(f"已保存罗盘航向方法比较图至 {compass_plot_file}")
 
-# 3. 绘制训练损失和验证损失曲线
-fig3, (ax3a, ax3b) = plt.subplots(1, 2, figsize=(6, 2.5), dpi=300)  # 两列图表
-plt.subplots_adjust(left=0.1, bottom=0.15, right=0.95, top=0.9, wspace=0.3)  # 调整间距
+# 3. 绘制训练损失和验证损失曲线（仅当新模型被训练时）
+if not reuse_models:
+    fig3, (ax3a, ax3b) = plt.subplots(1, 2, figsize=(6, 2.5), dpi=300)  # 两列图表
+    plt.subplots_adjust(left=0.1, bottom=0.15, right=0.95, top=0.9, wspace=0.3)  # 调整间距
 
-# 陀螺仪模型训练历史
-ax3a.plot(gyro_history.history['loss'], color='blue', linestyle='-', linewidth=1, label='Train')
-ax3a.plot(gyro_history.history['val_loss'], color='red', linestyle='--', linewidth=1, label='Validation')
-ax3a.set_title('Gyro LSTM Training History', fontsize=fontSizeAll+1)
-ax3a.set_xlabel('Epoch', labelpad=3)
-ax3a.set_ylabel('Loss (MSE)', labelpad=4)
-ax3a.tick_params(axis='both', which='major', labelsize=fontSizeAll-1)
-ax3a.grid(linestyle=':', linewidth=0.5, alpha=0.3)
-ax3a.legend(fontsize=fontSizeAll-1)
+    # 陀螺仪模型训练历史
+    ax3a.plot(gyro_history.history['loss'], color='blue', linestyle='-', linewidth=1, label='Train')
+    ax3a.plot(gyro_history.history['val_loss'], color='red', linestyle='--', linewidth=1, label='Validation')
+    ax3a.set_title('Gyro LSTM Training History', fontsize=fontSizeAll+1)
+    ax3a.set_xlabel('Epoch', labelpad=3)
+    ax3a.set_ylabel('Loss (MSE)', labelpad=4)
+    ax3a.tick_params(axis='both', which='major', labelsize=fontSizeAll-1)
+    ax3a.grid(linestyle=':', linewidth=0.5, alpha=0.3)
+    ax3a.legend(fontsize=fontSizeAll-1)
 
-# 罗盘模型训练历史
-ax3b.plot(compass_history.history['loss'], color='blue', linestyle='-', linewidth=1, label='Train')
-ax3b.plot(compass_history.history['val_loss'], color='red', linestyle='--', linewidth=1, label='Validation')
-ax3b.set_title('Compass LSTM Training History', fontsize=fontSizeAll+1)
-ax3b.set_xlabel('Epoch', labelpad=3)
-ax3b.set_ylabel('Loss (MSE)', labelpad=4)
-ax3b.tick_params(axis='both', which='major', labelsize=fontSizeAll-1)
-ax3b.grid(linestyle=':', linewidth=0.5, alpha=0.3)
-ax3b.legend(fontsize=fontSizeAll-1)
+    # 罗盘模型训练历史
+    ax3b.plot(compass_history.history['loss'], color='blue', linestyle='-', linewidth=1, label='Train')
+    ax3b.plot(compass_history.history['val_loss'], color='red', linestyle='--', linewidth=1, label='Validation')
+    ax3b.set_title('Compass LSTM Training History', fontsize=fontSizeAll+1)
+    ax3b.set_xlabel('Epoch', labelpad=3)
+    ax3b.set_ylabel('Loss (MSE)', labelpad=4)
+    ax3b.tick_params(axis='both', which='major', labelsize=fontSizeAll-1)
+    ax3b.grid(linestyle=':', linewidth=0.5, alpha=0.3)
+    ax3b.legend(fontsize=fontSizeAll-1)
 
-# 保存图表
-history_plot_file = os.path.join(output_dir, 'lstm_training_history.png')
-plt.savefig(history_plot_file, bbox_inches='tight')
-print(f"已保存训练历史图至 {history_plot_file}")
+    # 保存图表
+    history_plot_file = os.path.join(output_dir, 'lstm_training_history.png')
+    plt.savefig(history_plot_file, bbox_inches='tight')
+    print(f"已保存训练历史图至 {history_plot_file}")
 
 print("所有处理和绘图任务完成") 

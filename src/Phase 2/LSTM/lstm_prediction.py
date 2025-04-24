@@ -4,9 +4,10 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 import os
+import joblib
 
 # 设置输出目录
-output_dir = '/Users/shaoxinyi/Downloads/FYP2/Output/Phase 2'
+output_dir = '/Users/shaoxinyi/Downloads/FYP2/Output/1536data result/Phase 2/LSTM'
 os.makedirs(output_dir, exist_ok=True)
 
 # 输入文件
@@ -115,24 +116,23 @@ compass_features = compass_data[['Magnetic_Field_Magnitude', 'gyroSumFromstart0'
 gyro_target = gyro_data['GroundTruthHeadingComputed'].values.reshape(-1, 1)
 compass_target = compass_data['GroundTruthHeadingComputed'].values.reshape(-1, 1)
 
-# 创建并拟合缩放器
-gyro_scaler_X = MinMaxScaler()
-gyro_scaler_y = MinMaxScaler()
-compass_scaler_X = MinMaxScaler()
-compass_scaler_y = MinMaxScaler()
-
-# 拟合缩放器
-gyro_features_scaled = gyro_scaler_X.fit_transform(gyro_features)
-gyro_target_scaled = gyro_scaler_y.fit_transform(gyro_target)
-compass_features_scaled = compass_scaler_X.fit_transform(compass_features)
-compass_target_scaled = compass_scaler_y.fit_transform(compass_target)
-
-# 加载已训练好的模型
-print("正在加载已训练好的LSTM模型...")
+# 加载已训练好的模型和缩放器
+print("正在加载已训练好的LSTM模型和缩放器...")
 try:
+    # 模型文件路径
     gyro_model_path = os.path.join(output_dir, 'gyro_heading_lstm_model.keras')
     compass_model_path = os.path.join(output_dir, 'compass_heading_lstm_model.keras')
     
+    # 缩放器文件路径
+    gyro_scaler_X_path = os.path.join(output_dir, 'gyro_scaler_X.pkl')
+    gyro_scaler_y_path = os.path.join(output_dir, 'gyro_scaler_y.pkl')
+    compass_scaler_X_path = os.path.join(output_dir, 'compass_scaler_X.pkl')
+    compass_scaler_y_path = os.path.join(output_dir, 'compass_scaler_y.pkl')
+    
+    # 配置文件路径
+    config_path = os.path.join(output_dir, 'lstm_config.txt')
+    
+    # 加载模型
     if os.path.exists(gyro_model_path) and os.path.exists(compass_model_path):
         gyro_model = tf.keras.models.load_model(gyro_model_path)
         compass_model = tf.keras.models.load_model(compass_model_path)
@@ -140,9 +140,48 @@ try:
     else:
         print(f"模型文件不存在: {gyro_model_path} 或 {compass_model_path}")
         exit(1)
+    
+    # 加载缩放器
+    if (os.path.exists(gyro_scaler_X_path) and os.path.exists(gyro_scaler_y_path) and
+        os.path.exists(compass_scaler_X_path) and os.path.exists(compass_scaler_y_path)):
+        gyro_scaler_X = joblib.load(gyro_scaler_X_path)
+        gyro_scaler_y = joblib.load(gyro_scaler_y_path)
+        compass_scaler_X = joblib.load(compass_scaler_X_path)
+        compass_scaler_y = joblib.load(compass_scaler_y_path)
+        print("缩放器加载成功")
+    else:
+        print("缩放器文件不存在，将创建新的缩放器")
+        # 创建并拟合缩放器
+        gyro_scaler_X = MinMaxScaler()
+        gyro_scaler_y = MinMaxScaler()
+        compass_scaler_X = MinMaxScaler()
+        compass_scaler_y = MinMaxScaler()
+        
+        # 拟合缩放器
+        gyro_features_scaled = gyro_scaler_X.fit_transform(gyro_features)
+        gyro_target_scaled = gyro_scaler_y.fit_transform(gyro_target)
+        compass_features_scaled = compass_scaler_X.fit_transform(compass_features)
+        compass_target_scaled = compass_scaler_y.fit_transform(compass_target)
+    
+    # 加载窗口大小
+    window_size = 20  # 默认值
+    if os.path.exists(config_path):
+        with open(config_path, 'r') as f:
+            for line in f:
+                if line.startswith('window_size='):
+                    window_size = int(line.split('=')[1])
+                    break
+        print(f"从配置文件加载窗口大小: {window_size}")
+    else:
+        print(f"使用默认窗口大小: {window_size}")
+        
 except Exception as e:
-    print(f"加载模型失败: {e}")
+    print(f"加载模型或缩放器失败: {e}")
     exit(1)
+
+# 使用加载的缩放器转换特征
+gyro_features_scaled = gyro_scaler_X.transform(gyro_features)
+compass_features_scaled = compass_scaler_X.transform(compass_features)
 
 # 创建序列数据函数
 def create_sequences(X, window_size):
@@ -150,9 +189,6 @@ def create_sequences(X, window_size):
     for i in range(len(X) - window_size):
         X_seq.append(X[i:i + window_size])
     return np.array(X_seq)
-
-# 设置窗口大小
-window_size = 20
 
 # 创建序列
 gyro_X_seq = create_sequences(gyro_features_scaled, window_size)

@@ -6,7 +6,7 @@ from matplotlib.lines import Line2D
 import os
 
 # 设置输出目录
-output_dir = '/Users/shaoxinyi/Downloads/FYP2/Output/Phase 2'
+output_dir = '/Users/shaoxinyi/Downloads/FYP2/Output/1536data result/Phase 2/LSTM'
 os.makedirs(output_dir, exist_ok=True)
 
 # 加载数据

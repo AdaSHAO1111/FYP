@@ -1,7 +1,0 @@
-Stability Threshold: 5.0
-Window Size: 100
-Threshold Step Difference: 5.0
-Target QS1 Range: (95, 115)
-Target QS2 Range: (130, 150)
-Number of QS Intervals: 2
-Data Points in QS Intervals: 4654 (35.17%)

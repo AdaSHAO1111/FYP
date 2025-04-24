@@ -350,30 +350,47 @@ class HeadingPredictor:
     
     def save_models(self, output_dir):
         """
-        Save trained models
+        Save trained models and scalers
         
         Parameters:
         -----------
         output_dir : str
-            Directory to save models
+            Directory to save models and scalers
         """
+        # Save models
         if self.gyro_model is not None:
             self.gyro_model.save(os.path.join(output_dir, 'gyro_heading_lstm_model.keras'))
             
         if self.compass_model is not None:
             self.compass_model.save(os.path.join(output_dir, 'compass_heading_lstm_model.keras'))
         
-        print(f"Models saved to {output_dir}")
+        # Save scalers
+        if hasattr(self, 'gyro_scaler_X') and hasattr(self, 'gyro_scaler_y'):
+            import joblib
+            joblib.dump(self.gyro_scaler_X, os.path.join(output_dir, 'gyro_scaler_X.pkl'))
+            joblib.dump(self.gyro_scaler_y, os.path.join(output_dir, 'gyro_scaler_y.pkl'))
+            
+        if hasattr(self, 'compass_scaler_X') and hasattr(self, 'compass_scaler_y'):
+            import joblib
+            joblib.dump(self.compass_scaler_X, os.path.join(output_dir, 'compass_scaler_X.pkl'))
+            joblib.dump(self.compass_scaler_y, os.path.join(output_dir, 'compass_scaler_y.pkl'))
+        
+        # Save window size
+        with open(os.path.join(output_dir, 'lstm_config.txt'), 'w') as f:
+            f.write(f"window_size={self.window_size}")
+        
+        print(f"Models and scalers saved to {output_dir}")
     
     def load_models(self, output_dir):
         """
-        Load trained models
+        Load trained models and scalers
         
         Parameters:
         -----------
         output_dir : str
-            Directory containing saved models
+            Directory containing saved models and scalers
         """
+        # Load models
         gyro_model_path = os.path.join(output_dir, 'gyro_heading_lstm_model.keras')
         compass_model_path = os.path.join(output_dir, 'compass_heading_lstm_model.keras')
         
@@ -383,4 +400,41 @@ class HeadingPredictor:
         
         if os.path.exists(compass_model_path):
             self.compass_model = tf.keras.models.load_model(compass_model_path)
-            print(f"Loaded compass model from {compass_model_path}") 
+            print(f"Loaded compass model from {compass_model_path}")
+        
+        # Load scalers
+        try:
+            import joblib
+            
+            gyro_scaler_X_path = os.path.join(output_dir, 'gyro_scaler_X.pkl')
+            gyro_scaler_y_path = os.path.join(output_dir, 'gyro_scaler_y.pkl')
+            compass_scaler_X_path = os.path.join(output_dir, 'compass_scaler_X.pkl')
+            compass_scaler_y_path = os.path.join(output_dir, 'compass_scaler_y.pkl')
+            
+            if os.path.exists(gyro_scaler_X_path):
+                self.gyro_scaler_X = joblib.load(gyro_scaler_X_path)
+                print(f"Loaded gyro_scaler_X from {gyro_scaler_X_path}")
+                
+            if os.path.exists(gyro_scaler_y_path):
+                self.gyro_scaler_y = joblib.load(gyro_scaler_y_path)
+                print(f"Loaded gyro_scaler_y from {gyro_scaler_y_path}")
+                
+            if os.path.exists(compass_scaler_X_path):
+                self.compass_scaler_X = joblib.load(compass_scaler_X_path)
+                print(f"Loaded compass_scaler_X from {compass_scaler_X_path}")
+                
+            if os.path.exists(compass_scaler_y_path):
+                self.compass_scaler_y = joblib.load(compass_scaler_y_path)
+                print(f"Loaded compass_scaler_y from {compass_scaler_y_path}")
+            
+            # Load window size
+            config_path = os.path.join(output_dir, 'lstm_config.txt')
+            if os.path.exists(config_path):
+                with open(config_path, 'r') as f:
+                    for line in f:
+                        if line.startswith('window_size='):
+                            self.window_size = int(line.split('=')[1])
+                            print(f"Loaded window_size: {self.window_size}")
+                            
+        except Exception as e:
+            print(f"Error loading scalers: {e}") 
