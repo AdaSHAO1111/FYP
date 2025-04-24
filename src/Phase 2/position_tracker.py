@@ -6,12 +6,12 @@ from math import atan2, degrees, radians, sin, cos
 from scipy.interpolate import interp1d
 
 # Set up output directory
-output_dir = '/Users/shaoxinyi/Downloads/FYP2/Output/Phase 2'
+output_dir = '/Users/shaoxinyi/Downloads/FYP2/Output/1578data result/Phase 2'
 os.makedirs(output_dir, exist_ok=True)
 
 # Input files
-compass_data_file = '/Users/shaoxinyi/Downloads/FYP2/Output/Phase1_Roadmap/1536_cleaned_compass_data.csv'
-ground_truth_file = '/Users/shaoxinyi/Downloads/FYP2/Output/Phase1_Roadmap/1536_cleaned_ground_truth_data.csv'
+compass_data_file = '/Users/shaoxinyi/Downloads/FYP2/Output/1578data result/Phase 1/1578_cleaned_compass_data.csv'
+ground_truth_file = '/Users/shaoxinyi/Downloads/FYP2/Output/1578data result/Phase 1/1578_cleaned_ground_truth_data.csv'
 
 print(f"Loading data from files...")
 try:
@@ -200,47 +200,32 @@ if mask.any():
     result_df.loc[mask, 'Gyro_Error_X'] = np.abs(result_df.loc[mask, 'Gyro_X'] - result_df.loc[mask, 'GT_X'])
     result_df.loc[mask, 'Gyro_Error_Y'] = np.abs(result_df.loc[mask, 'Gyro_Y'] - result_df.loc[mask, 'GT_Y'])
     result_df.loc[mask, 'Gyro_Distance_Error'] = np.sqrt(
-        (result_df.loc[mask, 'Gyro_Error_X'])**2 + 
-        (result_df.loc[mask, 'Gyro_Error_Y'])**2
+        (result_df.loc[mask, 'Gyro_X'] - result_df.loc[mask, 'GT_X'])**2 + 
+        (result_df.loc[mask, 'Gyro_Y'] - result_df.loc[mask, 'GT_Y'])**2
     )
     
     # Compass errors
     result_df.loc[mask, 'Compass_Error_X'] = np.abs(result_df.loc[mask, 'Compass_X'] - result_df.loc[mask, 'GT_X'])
     result_df.loc[mask, 'Compass_Error_Y'] = np.abs(result_df.loc[mask, 'Compass_Y'] - result_df.loc[mask, 'GT_Y'])
     result_df.loc[mask, 'Compass_Distance_Error'] = np.sqrt(
-        (result_df.loc[mask, 'Compass_Error_X'])**2 + 
-        (result_df.loc[mask, 'Compass_Error_Y'])**2
+        (result_df.loc[mask, 'Compass_X'] - result_df.loc[mask, 'GT_X'])**2 + 
+        (result_df.loc[mask, 'Compass_Y'] - result_df.loc[mask, 'GT_Y'])**2
     )
 
-# Reorder columns
-column_order = [
-    'step',
-    'Walked_distance',
-    'Compass_X',
-    'Compass_Y',
-    'Gyro_X',
-    'Gyro_Y',
-    'GT_X',
-    'GT_Y',
-    'Gyro_Error_X',
-    'Gyro_Error_Y',
-    'Gyro_Distance_Error',
-    'Compass_Error_X',
-    'Compass_Error_Y',
-    'Compass_Distance_Error'
-]
-result_df = result_df[column_order]
+# Save the results to a CSV file
+output_file = os.path.join(output_dir, '1578_position_trajectories.csv')
+result_df.to_csv(output_file, index=False)
+print(f"Saved position trajectories to {output_file}")
 
-# Save to Excel
-output_file = os.path.join(output_dir, 'position_coordinates.xlsx')
-result_df.to_excel(output_file, index=False)
-print(f"Position coordinates saved to: {output_file}")
+# Print summary of error statistics at the end
+if mask.any():
+    print("\nError Statistics:")
+    print(f"Gyro Distance Error - Mean: {result_df['Gyro_Distance_Error'].mean():.2f} m, Max: {result_df['Gyro_Distance_Error'].max():.2f} m")
+    print(f"Compass Distance Error - Mean: {result_df['Compass_Distance_Error'].mean():.2f} m, Max: {result_df['Compass_Distance_Error'].max():.2f} m")
+else:
+    print("\nNo ground truth data available for error calculation")
 
-# Also create a CSV version
-csv_output_file = os.path.join(output_dir, 'position_coordinates.csv')
-result_df.to_csv(csv_output_file, index=False)
-
-current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-print(f"Position coordinates also saved as CSV to: {csv_output_file} at {current_time}")
-
-print("Position coordinate analysis complete") 
+# Include timestamp in the output file
+timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+print(f"Processing completed at {timestamp}")
+print(f"All results saved to {output_dir}") 

@@ -7,11 +7,11 @@ from matplotlib.ticker import MultipleLocator
 import os
 
 # Set up output directory
-output_dir = '/Users/shaoxinyi/Downloads/FYP2/Output/Phase 2'
+output_dir = '/Users/shaoxinyi/Downloads/FYP2/Output/1578data result/Phase 2'
 os.makedirs(output_dir, exist_ok=True)
 
 # Input file
-input_file = '/Users/shaoxinyi/Downloads/FYP2/Output/Phase 2/position_coordinates.csv'
+input_file = '/Users/shaoxinyi/Downloads/FYP2/Output/1578data result/Phase 2/1578_position_trajectories.csv'
 
 print(f"Loading data from {input_file}...")
 try:
@@ -67,7 +67,7 @@ ax1.xaxis.set_major_locator(MultipleLocator(10))  # Adjust spacing as needed
 ax1.yaxis.set_major_locator(MultipleLocator(5))   # Major ticks every 5 meters
 
 # Save the figure
-error_plot_file = os.path.join(output_dir, 'distance_error_plot.png')
+error_plot_file = os.path.join(output_dir, '1578_distance_error_plot.png')
 fig1.savefig(error_plot_file, bbox_inches='tight')
 print(f"Distance error plot saved to: {error_plot_file}")
 
@@ -88,7 +88,7 @@ plt.grid(True, linestyle=':', linewidth=0.5, alpha=0.3, color='k')
 plt.legend()
 
 # Save the figure
-ecdf_plot_file = os.path.join(output_dir, 'ecdf_plot.png')
+ecdf_plot_file = os.path.join(output_dir, '1578_ecdf_plot.png')
 fig2.savefig(ecdf_plot_file, bbox_inches='tight')
 print(f"ECDF plot saved to: {ecdf_plot_file}")
 
@@ -110,9 +110,36 @@ plt.ylabel('Positioning Error (m)', fontsize=5)
 plt.grid(True, linestyle=':', linewidth=0.5, alpha=0.3, color='k')
 
 # Save the figure
-box_plot_file = os.path.join(output_dir, 'box_plot.png')
+box_plot_file = os.path.join(output_dir, '1578_box_plot.png')
 fig3.savefig(box_plot_file, bbox_inches='tight')
 print(f"Box plot saved to: {box_plot_file}")
+
+### 4. Trajectory Visualization 
+print("Generating trajectory plot...")
+fig4, ax4 = plt.subplots(figsize=(5, 5), dpi=1000)
+
+# Plot ground truth path
+ax4.plot(valid_data['GT_X'], valid_data['GT_Y'], 'k-', label='Ground Truth', linewidth=1.5)
+ax4.scatter(valid_data['GT_X'], valid_data['GT_Y'], color='black', s=10, marker='o')
+
+# Plot compass-based path
+ax4.plot(valid_data['Compass_X'], valid_data['Compass_Y'], 'r-', label='Compass', linewidth=1)
+ax4.scatter(valid_data['Compass_X'], valid_data['Compass_Y'], color='red', s=8, marker='s')
+
+# Plot gyro-based path
+ax4.plot(valid_data['Gyro_X'], valid_data['Gyro_Y'], 'b-', label='Gyro', linewidth=1)
+ax4.scatter(valid_data['Gyro_X'], valid_data['Gyro_Y'], color='blue', s=8, marker='^')
+
+ax4.set_xlabel('X (m)', labelpad=3)
+ax4.set_ylabel('Y (m)', labelpad=3)
+ax4.set_aspect('equal')
+ax4.grid(True, linestyle=':', linewidth=0.5, alpha=0.3, color='k')
+ax4.legend(loc='best')
+
+# Save the figure
+trajectory_plot_file = os.path.join(output_dir, '1578_trajectory_plot.png')
+fig4.savefig(trajectory_plot_file, bbox_inches='tight')
+print(f"Trajectory plot saved to: {trajectory_plot_file}")
 
 # Calculate and print summary statistics
 print("\nSummary statistics:")

@@ -2,11 +2,11 @@ import pandas as pd
 import os
 
 # Set output directory
-output_dir = '/Users/shaoxinyi/Downloads/FYP2/Output/Phase 2'
+output_dir = '/Users/shaoxinyi/Downloads/FYP2/Output/1578data result/Phase 2'
 os.makedirs(output_dir, exist_ok=True)
 
 # Input file
-input_file = '/Users/shaoxinyi/Downloads/FYP2/Data_collected/1536_CompassGyroSumHeadingData.txt'
+input_file = '/Users/shaoxinyi/Downloads/FYP2/Data_collected/1578_CompassGyroSumHeadingData.txt'
 
 # Loading raw data
 print(f"Loading data from {input_file}")
@@ -50,7 +50,7 @@ compass_data.rename(columns={'value_3': 'compass'}, inplace=True)
 compass_heading_data = compass_data[['Time_relative', 'compass']]
 
 # Save to CSV
-csv_output_file = os.path.join(output_dir, 'compass_heading_data.csv')
+csv_output_file = os.path.join(output_dir, '1578_compass_heading_data.csv')
 compass_heading_data.to_csv(csv_output_file, index=False)
 print(f"Saved compass heading data to {csv_output_file}")
 
